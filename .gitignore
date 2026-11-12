@@ -13,3 +13,5 @@ ios/ThaiPinyin.xcodeproj/
 web/dict.mobile.js
 web/dict.mobile.json
 web/dict.mobile.txt
+demo/node_modules/
+demo/out/

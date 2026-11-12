@@ -4,6 +4,10 @@ Source for the Karaoke Thai Keyboard: the paid [iPhone/iPad app](https://capclar
 
 Type Thai by sound, like Chinese pinyin input: `sawatdeekrap` → สวัสดีครับ.
 
+[![Demo: typing sawatdeekrap gives สวัสดีครับ](docs/demo.gif)](docs/demo.mp4)
+
+[Watch the demo in full quality (MP4, 33 s)](docs/demo.mp4). The video is made with [Remotion](https://www.remotion.dev) from `demo/`; the Thai guesses shown are the engine's real output (`node demo/cands.js . sawatdeekrap > demo/src/cands.json`). To re-render: `cd demo && npm install && npx remotion render src/index.ts Demo ../docs/demo.mp4`.
+
 ## Mac keyboard (works in every app)
 
 ```bash
