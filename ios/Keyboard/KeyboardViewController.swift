@@ -82,15 +82,27 @@ final class KeyboardViewController: UIInputViewController {
 
     // A light tap on every key press. iOS only allows it with "Allow Full Access" on;
     // without it the call does nothing.
+    // A short, crisp tick like Apple's keyboard: a "rigid" tap at reduced strength (a full
+    // "light" tap is heavier and duller than the system's).
     private var haptic: UIImpactFeedbackGenerator?
+    private var hapticsAllowed = false
+    private static let hapticStrength: CGFloat = 0.65
     private func tap() {
-        guard hasFullAccess else { return }
+        guard hapticsAllowed, let haptic else { return }
+        if #available(iOS 17.5, *) { haptic.impactOccurred(intensity: Self.hapticStrength, at: .zero) }
+        else { haptic.impactOccurred(intensity: Self.hapticStrength) }
+        haptic.prepare() // keeps the Taptic Engine awake for the next key
+    }
+
+    /// Made and woken up before the first key, so the first tap isn't late.
+    private func readyHaptic() {
+        hapticsAllowed = hasFullAccess // asked once per appearance, not on every key
+        guard hapticsAllowed else { return }
         if haptic == nil {
             // Tied to the keyboard's view: newer iOS plays feedback only for a view on screen.
-            if #available(iOS 17.5, *) { haptic = UIImpactFeedbackGenerator(style: .light, view: keys) }
-            else { haptic = UIImpactFeedbackGenerator(style: .light) }
+            if #available(iOS 17.5, *) { haptic = UIImpactFeedbackGenerator(style: .rigid, view: keys) }
+            else { haptic = UIImpactFeedbackGenerator(style: .rigid) }
         }
-        if #available(iOS 17.5, *) { haptic?.impactOccurred(at: .zero) } else { haptic?.impactOccurred() }
         haptic?.prepare()
     }
 
@@ -98,6 +110,19 @@ final class KeyboardViewController: UIInputViewController {
         super.viewWillAppear(animated)
         applyHeight(wantedHeight())
         startFresh()
+        readyHaptic()
+    }
+
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        // iOS holds touches near the screen edges back for a moment to check for system
+        // swipes, which makes the keys feel late. The keys handle touches themselves.
+        view.window?.gestureRecognizers?.forEach {
+            $0.delaysTouchesBegan = false
+            $0.delaysTouchesEnded = false
+            $0.cancelsTouchesInView = false // or a fast tap can be taken away before it types
+        }
+        readyHaptic()
     }
 
     override func viewWillDisappear(_ animated: Bool) {
@@ -282,9 +307,16 @@ final class KeyboardViewController: UIInputViewController {
             bar.show(input: "", candidates: [], loading: false)
             return
         }
-        // Keep showing the previous guesses (dimmed) until the new ones arrive.
-        bar.show(input: buffer, candidates: cands, loading: true)
         let input = buffer
+        if Engine.shared.isReady {
+            // A lookup takes a millisecond or two: letters and guesses change in the same frame.
+            let list = Engine.shared.candidatesNow(for: input, previous: context())
+            cands = list; candsFor = input
+            bar.show(input: input, candidates: list, loading: false)
+            return
+        }
+        // Still loading the word list: keep the previous guesses (dimmed) until the new ones arrive.
+        bar.show(input: buffer, candidates: cands, loading: true)
         Engine.shared.candidates(for: input, previous: context()) { [weak self] list in
             guard let self, id == self.request else { return }
             self.cands = list

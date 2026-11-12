@@ -24,6 +24,10 @@ final class Engine {
     private let lock = NSLock()
     private var pending: (input: String, previous: String?, done: ([Candidate]) -> Void)?
     private var busy = false
+    private var loaded = false // `ready`, readable from any thread (under `lock`)
+
+    /// True once the word list is in memory: a lookup then takes a millisecond or two.
+    var isReady: Bool { lock.lock(); defer { lock.unlock() }; return loaded }
 
     private init() {
         queue.async { self.start() }
@@ -38,6 +42,7 @@ final class Engine {
             let learned = UserDefaults.standard.string(forKey: Self.learnKey)?.data(using: .utf8)
             try engine.load(contentsOf: url, learned: learned)
             ready = true
+            lock.lock(); loaded = true; lock.unlock()
             log.notice("loaded \(self.engine.size) words in \(Date().timeIntervalSince(t0), format: .fixed(precision: 2))s, memory \(Engine.memoryMB(), format: .fixed(precision: 1)) MB")
         } catch {
             log.error("word list: \(error.localizedDescription, privacy: .public)")

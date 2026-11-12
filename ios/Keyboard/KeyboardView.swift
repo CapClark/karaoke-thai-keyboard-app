@@ -1,4 +1,5 @@
 import UIKit
+import os
 
 enum Page { case letters, numbers, symbols }
 
@@ -106,6 +107,8 @@ final class KeyboardView: UIView {
     private var caps: [KeyCap] = []
     private var rows: [[Key]] = []
     private var active: [UITouch: KeyCap] = [:]
+    private var began: [UITouch: (at: CGPoint, time: TimeInterval)] = [:]
+    private let log = Logger(subsystem: "com.kenpeeranat.ThaiPinyin", category: "keys")
     private var repeatTimer: Timer?
     private let popup = UIView()
     private let popupLabel = UILabel()
@@ -272,9 +275,10 @@ final class KeyboardView: UIView {
                 finish(other, oc, fire: true)
             }
             active[t] = c
+            began[t] = (t.location(in: self), t.timestamp)
             c.pressed = true
-            UIDevice.current.playInputClick()
             onTouch?()
+            UIDevice.current.playInputClick()
             switch c.key.kind {
             case .delete:
                 onKey?(.delete)
@@ -315,11 +319,23 @@ final class KeyboardView: UIView {
     }
 
     override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
-        for t in touches { if let c = active[t] { finish(t, c, fire: false) } }
+        for t in touches {
+            guard let c = active[t] else { continue }
+            // iOS sometimes takes a touch away mid-tap when typing fast (it is checking for a
+            // system swipe). A short touch that hasn't moved was a tap: it still types.
+            var tapped = false
+            if let b = began[t], c.key.kind != .globe {
+                let p = t.location(in: self)
+                tapped = t.timestamp - b.time < 0.4 && abs(p.x - b.at.x) < 14 && abs(p.y - b.at.y) < 14
+            }
+            log.notice("touch cancelled, typed anyway: \(tapped)")
+            finish(t, c, fire: tapped)
+        }
     }
 
     private func finish(_ t: UITouch, _ c: KeyCap, fire: Bool) {
         active[t] = nil
+        began[t] = nil
         c.pressed = false
         if c.key.kind == .delete { repeatTimer?.invalidate(); repeatTimer = nil }
         if active.values.allSatisfy({ if case .char = $0.key.kind { return false }; return true }) { popup.isHidden = true }

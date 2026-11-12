@@ -16,6 +16,7 @@ final class CandidateBar: UIView {
     private var input = ""
     private var items: [Candidate] = []
     private var loading = false
+    private var buttons: [UIButton] = []
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -50,7 +51,9 @@ final class CandidateBar: UIView {
 
     /// `loading`: the guesses shown are for fewer letters; keep them until the new ones arrive.
     func show(input: String, candidates: [Candidate], loading: Bool) {
-        let changed = candidates.map(\.text) != items.map(\.text) || candidates.map(\.consume) != items.map(\.consume)
+        // The left-over letters shown after a guess depend on the input too.
+        let changed = input != self.input || candidates.count != items.count
+            || !zip(candidates, items).allSatisfy { $0.text == $1.text && $0.consume == $1.consume }
         self.input = input
         self.loading = loading
         if changed { items = candidates; rebuildItems(); scroll.contentOffset = .zero }
@@ -58,10 +61,19 @@ final class CandidateBar: UIView {
     }
 
     private func rebuildItems() {
-        stack.arrangedSubviews.forEach { $0.removeFromSuperview() }
-        for (i, c) in items.enumerated() {
+        // Buttons are kept and relabelled: making 36 new ones on every letter held the keys up.
+        while buttons.count < items.count {
             let b = UIButton(type: .custom)
-            b.tag = i
+            b.tag = buttons.count
+            b.contentEdgeInsets = UIEdgeInsets(top: 0, left: 12, bottom: 0, right: 12)
+            b.layer.cornerRadius = 6
+            b.addTarget(self, action: #selector(tapped(_:)), for: .touchUpInside)
+            buttons.append(b)
+            stack.addArrangedSubview(b)
+        }
+        for (i, b) in buttons.enumerated() where b.isHidden != (i >= items.count) { b.isHidden = i >= items.count }
+        for (i, c) in items.enumerated() {
+            let b = buttons[i]
             let title = NSMutableAttributedString(string: c.text, attributes: [
                 .font: UIFont.systemFont(ofSize: 20),
                 .foregroundColor: theme.text,
@@ -72,12 +84,8 @@ final class CandidateBar: UIView {
                 title.append(NSAttributedString(string: " +" + rest, attributes: [
                     .font: UIFont.systemFont(ofSize: 12), .foregroundColor: theme.muted]))
             }
-            b.setAttributedTitle(title, for: .normal)
-            b.contentEdgeInsets = UIEdgeInsets(top: 0, left: 12, bottom: 0, right: 12)
-            b.layer.cornerRadius = 6
-            b.addTarget(self, action: #selector(tapped(_:)), for: .touchUpInside)
+            if b.attributedTitle(for: .normal) != title { b.setAttributedTitle(title, for: .normal) }
             b.accessibilityLabel = c.text
-            stack.addArrangedSubview(b)
         }
         setNeedsLayout()
     }
@@ -109,14 +117,14 @@ final class CandidateBar: UIView {
     }
 
     @objc private func tapped(_ b: UIButton) {
-        UIDevice.current.playInputClick()
         onTouch?()
+        UIDevice.current.playInputClick()
         onPick?(b.tag)
     }
 
     @objc private func keep() {
-        UIDevice.current.playInputClick()
         onTouch?()
+        UIDevice.current.playInputClick()
         onKeepLetters?()
     }
 }
