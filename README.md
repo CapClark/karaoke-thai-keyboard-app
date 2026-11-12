@@ -1,6 +1,6 @@
 # Karaoke Thai Keyboard
 
-MIT licensed; data sources are listed in [CREDITS.md](CREDITS.md). `index.html` and `privacy.html` at the top level are the app's support page and privacy policy (served by GitHub Pages).
+Private source. Data sources are listed in [CREDITS.md](CREDITS.md). The public support page and privacy policy (`index.html`, `privacy.html`) are published from the separate public repository `CapClark/karaoke-thai-keyboard`.
 
 Type Thai by sound, like Chinese pinyin input: `sawatdeekrap` → สวัสดีครับ.
 
