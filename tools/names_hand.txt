@@ -1,0 +1,403 @@
+# Common proper nouns with the spellings people type. One per line:
+#   Thai  spelling [spelling ...]
+# tools/proper_nouns.py merges this with provinces, countries and first names/surnames that
+# appear in the corpora, and writes web/names.js. A name that is already a word keeps its
+# rank and just gains the spellings; a new name is added at a modest rank.
+
+# ---- nicknames ----
+เมย์ may mei
+มายด์ mind
+ฟ้า fah fa
+ฝน fon
+นัท nat nut
+แนท nat
+บอล ball bon
+บาส bas bass
+เบียร์ beer bia
+แบงค์ bank
+แบงก์ bank
+บีม beam
+เบล bell ben
+บิว bew biw
+โบ๊ท boat
+บอส boss
+บุ๊ค book
+บี bee
+เบนซ์ benz
+โบว์ bow bo
+ไบร์ท bright
+ต้น ton
+เต้ย toey
+เตย toey
+เต้ tae
+ตาล tan
+แตงโม taengmo tangmo
+ต่าย tai
+ตั้ม tum tam
+โต้ง tong
+ตูน toon
+ตุ๊ก tuk took
+ติ๊ก tik
+ไตเติ้ล title
+ไอซ์ ice
+อาย eye ai
+อิง ing
+อ้อม aom om
+อ้อย oi aoi
+อุ้ม aum um
+เอิร์ธ earth
+เอ็ม em
+โอ๊ต oat
+ออม aom
+อั้ม aum um
+อาร์ม arm
+แอม am
+แอน ann an
+อุ่น aun un
+ไอติม aitim icecream
+โอม ohm om
+ออกัส august
+กอล์ฟ golf
+เกม game
+เกมส์ game games
+แก้ม kaem gam
+กิ๊ฟ gift
+กิ๊ก gig kik
+กุ๊ก kuk kook
+เก่ง keng
+ก้อง kong
+กาย guy kai
+ไก่ kai gai
+กวาง kwang
+กบ kop kob
+เจ jay
+เจน jane jen
+แจน jan
+จูน june
+จอย joy
+แจ็ค jack
+เจมส์ james
+โจ joe jo
+จิ๊บ jib
+จีน jean jin
+เจนนี่ jennie jenny
+ปาล์ม palm
+ปอนด์ pond
+เปิ้ล ple
+ป๊อป pop
+ปุ้ย pui
+เปรม prem
+ปลา pla
+ปู pu poo
+ปั้น pan
+ปิ่น pin
+พลอย ploy
+พีช peach
+แพร prae
+แพรว praew
+ภูมิ phum poom
+พิม pim
+พิมพ์ pim
+แพท pat
+แพม pam
+เพลง pleng
+พราว proud prao
+พี pee
+เพชร phet pet
+เฟิร์น fern
+ฟิล์ม film
+โฟร์ท fourth
+เฟรม frame
+ฟลุค fluke
+โฟกัส focus
+ฟาง fang
+ฝ้าย fai
+มิ้นท์ mint
+มิ้น mint min
+มิว mew
+หมิว mew
+มุก mook muk
+เมฆ mek
+แม็ก max mac
+ไมค์ mike
+โม mo
+มีน mean meen
+มะปราง maprang
+มะนาว manao
+มาร์ค mark
+หมี mee
+หมู moo mu
+นิว new
+นุ่น noon nun
+เนย noey
+แนน nan
+โน้ต note
+หนิง ning
+หน่อย noi
+นิค nick
+ไนซ์ nice
+น้ำฝน namfon
+น้ำตาล namtan
+น้ำหวาน namwan
+นก nok
+วิน win
+ว่าน wan
+วิว view
+แวว waew
+ส้ม som
+แสตมป์ stamp
+ซัน sun
+โซดา soda
+หญิง ying
+ยุ้ย yui
+หยก yok
+เล็ก lek
+ลิซ่า lisa
+ลิลลี่ lily lilly
+ดิว dew
+ดรีม dream
+ดาว dao
+เดียร์ dear
+โดม dome
+ท็อป top
+ทิม tim
+เท็น ten
+ไทม์ time
+ฮาร์ท heart
+เฮง heng
+ขวัญ kwan khwan
+คิม kim
+แคท cat
+ชมพู่ chompoo chomphu
+เชอร์รี่ cherry
+แชมป์ champ
+ชิน shin chin
+ใบเฟิร์น baifern
+ใบเตย baitoey
+ต้นกล้า tonkla
+ไข่มุก khaimuk kaimook
+ผึ้ง phueng
+
+# ---- well-known first names ----
+สมชาย somchai
+สมศักดิ์ somsak
+สมหญิง somying
+สมศรี somsri somsi
+สมพร somporn somphon
+สมบัติ sombat
+สมใจ somjai
+ประเสริฐ prasert
+ประยุทธ์ prayut prayuth
+ประวิตร prawit
+ทักษิณ thaksin taksin
+ยิ่งลักษณ์ yingluck yinglak
+เศรษฐา srettha settha
+แพทองธาร paetongtarn
+พิธา pita
+อนุทิน anutin
+อภิสิทธิ์ abhisit apisit
+ชัชชาติ chadchart chatchat
+ธนาธร thanathorn
+วิชัย wichai vichai
+วิโรจน์ wiroj wirot
+สุรชัย surachai
+สุชาติ suchat suchart
+ณัฐวุฒิ nattawut natthawut
+ณัฐพล nattapon natthaphon nattapol
+ธนพล thanapon thanaphon
+ธนากร thanakorn
+กิตติ kitti
+กิตติพงษ์ kittipong
+อนุชา anucha
+ศักดิ์ชัย sakchai
+พงศกร pongsakorn
+ภาณุ phanu panu
+ธีรพงษ์ theerapong
+วรวุฒิ worawut
+ศุภชัย supachai
+ชัยวัฒน์ chaiwat
+นิพนธ์ nipon niphon
+พีรณัฐ peeranat
+สุดา suda
+มาลี malee mali
+กนกวรรณ kanokwan
+ศิริพร siriporn
+พรทิพย์ porntip
+วิไล wilai
+นิตยา nittaya
+รัตนา rattana
+สุนิสา sunisa
+ณัฐธิดา nattida natthida
+ชนิดา chanida
+จิราพร jiraporn
+สุภาพร supaporn
+วันเพ็ญ wanpen
+อัญชลี anchalee
+ธิดารัตน์ thidarat
+กัญญา kanya
+พิมพ์ชนก pimchanok
+อารยา araya
+
+# ---- Bangkok areas, stations, places ----
+กรุงเทพ bangkok krungthep
+กรุงเทพฯ bangkok krungthep
+กรุงเทพมหานคร krungthepmahanakhon
+สุขุมวิท sukhumvit sukhumwit
+สีลม silom
+สาทร sathorn sathon
+สยาม siam sayam
+อโศก asok asoke
+ทองหล่อ thonglor thonglo
+เอกมัย ekkamai ekamai
+อารีย์ ari aree
+ลาดพร้าว ladprao latphrao
+รัชดา ratchada
+จตุจักร chatuchak jatujak
+บางนา bangna
+บางกะปิ bangkapi
+รามคำแหง ramkhamhaeng
+ห้วยขวาง huaikhwang
+ดินแดง dindaeng
+พญาไท phayathai
+ราชเทวี ratchathewi
+ปทุมวัน pathumwan
+เยาวราช yaowarat
+ข้าวสาร khaosan
+ดอนเมือง donmueang donmuang
+สุวรรณภูมิ suvarnabhumi suwannaphum
+หมอชิต mochit
+อ่อนนุช onnut
+อุดมสุข udomsuk
+แบริ่ง bearing
+สำโรง samrong
+ปากเกร็ด pakkret
+รังสิต rangsit
+มีนบุรี minburi
+ตลิ่งชัน talingchan
+ธนบุรี thonburi
+บางแค bangkhae
+บางซื่อ bangsue
+งามวงศ์วาน ngamwongwan
+แจ้งวัฒนะ chaengwattana
+ปิ่นเกล้า pinklao
+วิภาวดี vibhavadi wiphawadi
+พหลโยธิน phahonyothin
+ศรีนครินทร์ srinakarin
+พร้อมพงษ์ phromphong
+ชิดลม chidlom
+เพลินจิต ploenchit
+ศาลาแดง saladaeng
+สามย่าน samyan
+หัวลำโพง hualamphong
+พัทยา pattaya phatthaya
+หัวหิน huahin
+เขาใหญ่ khaoyai
+สมุย samui
+เกาะสมุย kohsamui
+เกาะพะงัน kohphangan
+เกาะเต่า kohtao
+เกาะช้าง kohchang
+เกาะเสม็ด kohsamet
+พีพี phiphi
+ปาย pai
+เชียงคาน chiangkhan
+เขาหลัก khaolak
+หาดใหญ่ hatyai
+แม่สาย maesai
+นิมมาน nimman
+ป่าตอง patong
+อ่าวนาง aonang
+
+# ---- countries and cities ----
+ประเทศไทย thailand prathetthai
+ญี่ปุ่น japan yipun
+เกาหลี korea kaoli
+จีน china jin
+อเมริกา america
+อังกฤษ england angkrit
+ฝรั่งเศส france farangset
+เยอรมัน german yoeraman
+เยอรมนี germany
+ลาว lao laos
+พม่า phama myanmar
+เมียนมา myanmar
+เวียดนาม vietnam
+กัมพูชา cambodia kamphucha
+มาเลเซีย malaysia
+สิงคโปร์ singapore
+อินโดนีเซีย indonesia
+ฟิลิปปินส์ philippines
+อินเดีย india
+ออสเตรเลีย australia
+รัสเซีย russia
+ไต้หวัน taiwan
+ฮ่องกง hongkong
+โตเกียว tokyo
+โซล seoul
+ลอนดอน london
+ปารีส paris
+นิวยอร์ก newyork
+ยุโรป europe yurop
+เอเชีย asia
+อิตาลี italy
+สเปน spain
+แคนาดา canada
+ดูไบ dubai
+โอซาก้า osaka
+ปักกิ่ง beijing pakking
+เซี่ยงไฮ้ shanghai
+บาหลี bali
+
+# ---- brands, apps, shops, schools, teams ----
+เฟซบุ๊ก facebook
+เฟสบุ๊ค facebook
+ไลน์ line
+ไอจี ig
+อินสตาแกรม instagram
+ติ๊กต็อก tiktok
+ยูทูป youtube
+กูเกิล google
+ทวิตเตอร์ twitter
+เน็ตฟลิกซ์ netflix
+ช้อปปี้ shopee
+ลาซาด้า lazada
+แกร็บ grab
+ไลน์แมน lineman
+เซเว่น seven sewen
+โลตัส lotus
+บิ๊กซี bigc
+แม็คโคร makro
+เซ็นทรัล central
+พารากอน paragon
+ไอคอนสยาม iconsiam
+สตาร์บัคส์ starbucks
+แมคโดนัลด์ mcdonald mcdonalds
+เคเอฟซี kfc
+เอ็มเค mk
+โออิชิ oishi
+ทรู true
+เอไอเอส ais
+ดีแทค dtac
+กสิกร kasikorn
+ไทยพาณิชย์ thaipanit
+กรุงไทย krungthai
+กรุงศรี krungsri
+ออมสิน omsin
+ไอโฟน iphone
+ซัมซุง samsung
+แอปเปิล apple
+โตโยต้า toyota
+ฮอนด้า honda
+เทสลา tesla
+บีทีเอส bts
+เอ็มอาร์ที mrt
+จุฬา chula
+จุฬาลงกรณ์ chulalongkorn
+ธรรมศาสตร์ thammasat
+มหิดล mahidol
+เกษตรศาสตร์ kasetsart
+ลิเวอร์พูล liverpool
+แมนยู manu
+อาร์เซนอล arsenal
+เชลซี chelsea
+แชทจีพีที chatgpt

@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Karaoke Thai</title>
+<style>
+  :root {
+    --bg: #f6f4ef; --panel: #fffdf8; --ink: #1f1d1a; --muted: #7a746a;
+    --line: #e2ddd2; --accent: #b4532a; --accent-soft: #f6e3d8;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #171614; --panel: #201f1c; --ink: #eeeae2; --muted: #9a9488;
+      --line: #34322d; --accent: #e08455; --accent-soft: #3a2a20; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+    font: 16px/1.5 -apple-system, "Sukhumvit Set", "Thonburi", system-ui, sans-serif; }
+  main { max-width: 760px; margin: 0 auto; padding: 32px 16px 64px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  .sub { color: var(--muted); margin: 0 0 20px; font-size: 14px; }
+  .editor { position: relative; background: var(--panel); border: 1px solid var(--line);
+    border-radius: 12px; }
+  textarea { width: 100%; min-height: 260px; padding: 16px; border: 0; resize: vertical;
+    background: transparent; color: var(--ink); font-size: 22px; line-height: 1.6;
+    font-family: inherit; outline: none; border-radius: 12px; }
+  .ime { position: absolute; z-index: 5; display: none; min-width: 220px;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(0,0,0,.12); overflow: hidden; }
+  .comp { padding: 6px 12px; font-family: ui-monospace, Menlo, monospace; font-size: 14px;
+    color: var(--accent); border-bottom: 1px solid var(--line); }
+  .cands { display: flex; flex-wrap: wrap; gap: 2px; padding: 6px; }
+  .cand { padding: 4px 10px; border-radius: 6px; font-size: 20px; cursor: pointer;
+    white-space: nowrap; }
+  .cand small { color: var(--muted); font-size: 12px; margin-right: 4px; }
+  .cand.on { background: var(--accent-soft); }
+  .cand .part { color: var(--muted); font-size: 12px; margin-left: 2px; }
+  .bar { display: flex; gap: 8px; align-items: center; margin-top: 12px; flex-wrap: wrap; }
+  button { font: inherit; font-size: 14px; padding: 6px 14px; border-radius: 8px;
+    border: 1px solid var(--line); background: var(--panel); color: var(--ink); cursor: pointer; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .mode { margin-left: auto; font-size: 13px; color: var(--muted); }
+  .keys { margin-top: 24px; font-size: 13px; color: var(--muted); }
+  kbd { font-family: ui-monospace, Menlo, monospace; font-size: 12px; padding: 1px 5px;
+    border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; background: var(--panel); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Karaoke Thai</h1>
+  <p class="sub">Type Thai by sound. <b>sawatdeekrap</b> → สวัสดีครับ, <b>kinkao</b> → กินข้าว, <b>pomrakkun</b> → ผมรักคุณ</p>
+  <div class="editor">
+    <textarea id="out" spellcheck="false" autofocus placeholder="Start typing in English letters…"></textarea>
+    <div class="ime" id="ime"><div class="comp" id="comp"></div><div class="cands" id="cands"></div></div>
+  </div>
+  <div class="bar">
+    <button class="primary" id="copy">Copy</button>
+    <button id="clear">Clear</button>
+    <span class="mode" id="mode">Thai mode · <kbd>Ctrl</kbd>+<kbd>Space</kbd> toggles English</span>
+  </div>
+  <p class="keys">
+    <kbd>Space</kbd> or <kbd>1</kbd> picks the first word · <kbd>2</kbd>–<kbd>9</kbd> pick others ·
+    <kbd>←</kbd><kbd>→</kbd> move highlight · <kbd>Enter</kbd> takes the highlighted word · <kbd>Shift</kbd>+<kbd>Enter</kbd> keeps the English letters ·
+    <kbd>Esc</kbd> cancels · words you pick move up next time.
+  </p>
+</main>
+<script src="phonemes.js"></script>
+<script src="dict.js"></script>
+<script src="extra.js"></script>
+<script src="personal.js" onerror="window.THAI_PERSONAL=[]"></script>
+<script src="names.js" onerror="window.THAI_NAMES=[]"></script>
+<script src="engine.js"></script>
+<script>
+  ThaiIME.load(window.THAI_DICT, window.THAI_EXTRA, window.THAI_PERSONAL || [], window.THAI_NAMES || []);
+  (function warm() { if (!ThaiIME.warmup(10)) setTimeout(warm, 20); })();
+  const ta = document.getElementById("out");
+  const ime = document.getElementById("ime");
+  const compEl = document.getElementById("comp");
+  const candsEl = document.getElementById("cands");
+  const modeEl = document.getElementById("mode");
+  let buf = "", cands = [], sel = 0, thai = true, prevWord = null;
+
+  function insert(text) {
+    const s = ta.selectionStart, e = ta.selectionEnd;
+    ta.setRangeText(text, s, e, "end");
+  }
+
+  // Place the popup under the caret using a mirror element.
+  function caretXY() {
+    const m = document.createElement("div");
+    const cs = getComputedStyle(ta);
+    for (const p of ["fontSize", "fontFamily", "lineHeight", "padding", "width", "letterSpacing", "wordBreak"])
+      m.style[p] = cs[p];
+    m.style.cssText += ";position:absolute;visibility:hidden;white-space:pre-wrap;overflow-wrap:break-word;top:0;left:0";
+    m.textContent = ta.value.slice(0, ta.selectionStart);
+    const mark = document.createElement("span"); mark.textContent = "​"; m.appendChild(mark);
+    ta.parentNode.appendChild(m);
+    const r = { x: mark.offsetLeft, y: mark.offsetTop + mark.offsetHeight - ta.scrollTop };
+    m.remove();
+    return r;
+  }
+
+  function render() {
+    if (!buf) { ime.style.display = "none"; return; }
+    cands = ThaiIME.candidates(buf, 9, prevWord);
+    sel = Math.min(sel, Math.max(0, cands.length - 1));
+    compEl.textContent = buf;
+    candsEl.innerHTML = "";
+    cands.forEach((c, i) => {
+      const d = document.createElement("span");
+      d.className = "cand" + (i === sel ? " on" : "");
+      d.innerHTML = `<small>${i + 1}${c.tier ? " ≈" : ""}</small>`;
+      d.appendChild(document.createTextNode(c.text));
+      if (c.consume < buf.length) {
+        const p = document.createElement("span"); p.className = "part";
+        p.textContent = "+" + buf.slice(c.consume); d.appendChild(p);
+      }
+      d.onmousedown = (ev) => { ev.preventDefault(); pick(i); };
+      candsEl.appendChild(d);
+    });
+    if (!cands.length) candsEl.innerHTML = '<span class="cand"><small>no match · Enter keeps letters</small></span>';
+    const { x, y } = caretXY();
+    ime.style.display = "block";
+    const maxX = ta.clientWidth - ime.offsetWidth - 8;
+    ime.style.left = Math.max(8, Math.min(x, maxX)) + "px";
+    ime.style.top = y + 6 + "px";
+  }
+
+  function pick(i) {
+    const c = cands[i]; if (!c) return;
+    insert(c.text); ThaiIME.learn(c.text, prevWord, c.kind); prevWord = c.text;
+    buf = buf.slice(c.consume); sel = 0; render();
+  }
+
+  function commitRaw() { insert(buf); buf = ""; prevWord = null; render(); }
+
+  ta.addEventListener("keydown", (e) => {
+    if (e.ctrlKey && e.code === "Space") {
+      e.preventDefault(); if (buf) commitRaw();
+      thai = !thai;
+      modeEl.innerHTML = (thai ? "Thai" : "English") + ' mode · <kbd>Ctrl</kbd>+<kbd>Space</kbd> toggles';
+      return;
+    }
+    if (!thai || e.metaKey || e.ctrlKey || e.altKey || e.isComposing) return;
+    const k = e.key;
+    if (/^[a-zA-Z]$/.test(k)) { e.preventDefault(); buf += k.toLowerCase(); sel = 0; render(); return; }
+    if (!buf) return;
+    if (k === "Backspace") { e.preventDefault(); buf = buf.slice(0, -1); render(); }
+    else if (k === " ") { e.preventDefault(); cands.length ? pick(sel) : commitRaw(); }
+    else if (/^[1-9]$/.test(k)) { e.preventDefault(); pick(+k - 1); }
+    else if (k === "ArrowRight" || k === "Tab") { e.preventDefault(); sel = (sel + 1) % Math.max(1, cands.length); render(); }
+    else if (k === "ArrowLeft") { e.preventDefault(); sel = (sel - 1 + cands.length) % Math.max(1, cands.length); render(); }
+    else if (k === "Enter") { e.preventDefault(); (e.shiftKey || !cands.length) ? commitRaw() : pick(sel); }
+    else if (k === "Escape") { e.preventDefault(); buf = ""; render(); }
+    else { // punctuation: commit best guess, then let the key through
+      if (cands.length) pick(sel); if (buf) commitRaw();
+    }
+  });
+  // Phones and some tools send text without key events; catch it here too.
+  ta.addEventListener("beforeinput", (e) => {
+    if (!thai || e.inputType !== "insertText" || !e.data) return;
+    if (/^[a-zA-Z]+$/.test(e.data)) {
+      e.preventDefault(); buf += e.data.toLowerCase(); sel = 0; render();
+    } else if (e.data === " " && buf) {
+      e.preventDefault(); cands.length ? pick(sel) : commitRaw();
+    }
+  });
+  ta.addEventListener("blur",() => { if (buf) commitRaw(); });
+  ta.addEventListener("scroll", render);
+
+  document.getElementById("copy").onclick = async () => {
+    try { await navigator.clipboard.writeText(ta.value); } catch (e) { ta.select(); document.execCommand("copy"); }
+    const b = document.getElementById("copy"); b.textContent = "Copied"; setTimeout(() => b.textContent = "Copy", 1200);
+    ta.focus();
+  };
+  document.getElementById("clear").onclick = () => { ta.value = ""; buf = ""; render(); ta.focus(); };
+</script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+.DS_Store
+.claude/
+# Your own dictated words: never published.
+web/personal.js
+# Downloaded corpora (see README for how to fetch them) and the Python environment.
+tools/data/
+tools/.venv/
+__pycache__/
+# Build output and generated files.
+mac/build/
+ios/build/
+ios/ThaiPinyin.xcodeproj/
+web/dict.mobile.js
+web/dict.mobile.json
+web/dict.mobile.txt
