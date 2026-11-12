@@ -154,18 +154,29 @@ final class KeyboardViewController: UIInputViewController {
 
     override func textDidChange(_ textInput: UITextInput?) {
         applyTheme()
+        // Moved to another kind of field while the keyboard stayed up (address bar to a web page).
+        if textDocumentProxy.keyboardType != fieldType { startFresh(); return }
         // The app changed the text (sent a message, moved the cursor…): what came before is gone.
         if let p = prevWord, !(textDocumentProxy.documentContextBeforeInput ?? "").hasSuffix(p) { prevWord = nil }
         autoShift()
     }
 
+    /// The kind of text field the keyboard last set its language for.
+    private var fieldType: UIKeyboardType?
+
+    /// Email and web addresses start in English. Search boxes (Chrome's and Safari's
+    /// address bar included) start in Thai: people search in Thai.
+    private static func startsInThai(_ type: UIKeyboardType?) -> Bool {
+        switch type {
+        case .emailAddress, .URL, .asciiCapable, .numbersAndPunctuation: return false
+        default: return true
+        }
+    }
+
     private func startFresh() {
         buffer = ""; cands = []; candsFor = nil; prevWord = nil
-        // Email and web addresses start in English.
-        switch textDocumentProxy.keyboardType {
-        case .emailAddress, .URL, .webSearch, .twitter, .asciiCapable, .numbersAndPunctuation: thai = false
-        default: thai = true
-        }
+        fieldType = textDocumentProxy.keyboardType
+        thai = Self.startsInThai(fieldType)
         keys.thai = thai
         keys.page = textDocumentProxy.keyboardType == .numbersAndPunctuation ? .numbers : .letters
         shiftOn = false; capsLock = false
