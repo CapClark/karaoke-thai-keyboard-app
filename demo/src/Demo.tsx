@@ -5,6 +5,7 @@ import {
 import { loadFont as loadInter } from "@remotion/google-fonts/Inter";
 import { loadFont as loadThai } from "@remotion/google-fonts/NotoSansThai";
 import cands from "./cands.json";
+import { Effects, Music, Sfx } from "./Sound";
 
 const { fontFamily: inter } = loadInter("normal", { weights: ["400", "500", "600", "700", "800"], subsets: ["latin"] });
 const { fontFamily: thai } = loadThai("normal", { weights: ["400", "500", "600", "700"], subsets: ["thai"] });
@@ -263,8 +264,26 @@ const End: React.FC = () => {
       <div style={{ fontSize: 36, color: ACCENT, marginTop: 22, opacity: interpolate(f, [30, 45], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" }) }}>
         github.com/CapClark/karaoke-thai-keyboard-app
       </div>
+      <div style={{ position: "absolute", bottom: 40, fontSize: 22, color: "#71717A" }}>
+        Music: “Sunset Drive” by Tokyo Music Walker (CC BY 3.0)
+      </div>
     </AbsoluteFill>
   );
+};
+
+// Frames of every key press, Space and scene change, for the sound effects.
+const soundEvents = (): [number, Sfx][] => {
+  const ev: [number, Sfx][] = [];
+  let base = INTRO + TYPE_START;
+  for (const p of PHRASES) {
+    for (let i = 0; i < p.typed.length; i++) ev.push([base + i * PER_LETTER, "key"]);
+    ev.push([base + p.typed.length * PER_LETTER + HOLD, "space"]);
+    base += phraseLen(p);
+  }
+  const v = INTRO + TYPE_DUR;
+  for (let i = 0; i < 3; i++) ev.push([v + 15 + i * 18, "key"]);
+  for (const at of [INTRO, INTRO + TYPE_DUR, v + VARIANTS, v + VARIANTS + PLATFORMS]) ev.push([at - 6, "whoosh"]);
+  return ev;
 };
 
 export const Demo: React.FC = () => {
@@ -281,6 +300,8 @@ export const Demo: React.FC = () => {
       {seq(VARIANTS, <Variants />)}
       {seq(PLATFORMS, <Platforms />)}
       {seq(END, <End />)}
+      <Music dropAt={INTRO + TYPE_START} total={TOTAL} />
+      <Effects events={soundEvents()} />
     </AbsoluteFill>
   );
 };

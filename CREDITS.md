@@ -25,3 +25,10 @@ the original texts.
 
 Hand-written spellings, chat words, phrases and names (`web/extra.js`,
 `tools/names_hand.txt`) are part of this project.
+
+## Demo videos
+
+- Music: **“Sunset Drive” by Tokyo Music Walker** (https://soundcloud.com/user-356546060), royalty free music
+  from https://www.free-stock-music.com, licensed under
+  [Creative Commons Attribution 3.0 (CC BY 3.0)](https://creativecommons.org/licenses/by/3.0/).
+- Sound effects (key clicks, chime, whoosh) are synthesized by `demo/sfx/make_sfx.py`.

@@ -12,7 +12,7 @@ On the Mac (a real screen recording of the input method in TextEdit):
 
 [![Mac demo: typing in TextEdit with Karaoke Thai](docs/demo-mac.gif)](docs/demo-mac.mp4)
 
-[Mac demo (MP4, 27 s)](docs/demo-mac.mp4). Recorded with `demo/mac/run.sh`, then framed with the `MacDemo` composition in `demo/`. The video is made with [Remotion](https://www.remotion.dev) from `demo/`; the Thai guesses shown are the engine's real output (`node demo/cands.js . sawatdeekrap > demo/src/cands.json`). To re-render: `cd demo && npm install && npx remotion render src/index.ts Demo ../docs/demo.mp4` (or `MacDemo ../docs/demo-mac.mp4`).
+[Mac demo (MP4, 27 s)](docs/demo-mac.mp4). Recorded with `demo/mac/run.sh`, then framed with the `MacDemo` composition in `demo/`. The video is made with [Remotion](https://www.remotion.dev) from `demo/`; the Thai guesses shown are the engine's real output (`node demo/cands.js . sawatdeekrap > demo/src/cands.json`). To re-render: `cd demo && npm install && npx remotion render src/index.ts Demo ../docs/demo.mp4` (or `MacDemo ../docs/demo-mac.mp4`). Both have music (“Sunset Drive” by Tokyo Music Walker, CC BY 3.0; download it from [free-stock-music.com](https://www.free-stock-music.com/tokyo-music-walker-sunset-drive.html) into `demo/public/sunset-drive.mp3` before rendering) and synthesized sound effects (`python3 demo/sfx/make_sfx.py demo/public`).
 
 ## Mac keyboard (works in every app)
 

@@ -1,5 +1,7 @@
 import React from "react";
 import { AbsoluteFill, OffthreadVideo, Sequence, interpolate, spring, staticFile, useCurrentFrame, useVideoConfig } from "remotion";
+import { Effects, Music, Sfx } from "./Sound";
+import macEvents from "./macEvents.json";
 import { loadFont as loadInter } from "@remotion/google-fonts/Inter";
 import { loadFont as loadThai } from "@remotion/google-fonts/NotoSansThai";
 
@@ -84,6 +86,9 @@ const End: React.FC = () => {
       <div style={{ fontSize: 36, color: ACCENT, marginTop: 34, opacity: interpolate(f, [50, 64], [0, 1], clamp) }}>
         capclark.github.io/karaoke-thai-keyboard
       </div>
+      <div style={{ position: "absolute", bottom: 40, fontSize: 22, color: "#71717A" }}>
+        Music: “Sunset Drive” by Tokyo Music Walker (CC BY 3.0)
+      </div>
     </AbsoluteFill>
   );
 };
@@ -93,5 +98,11 @@ export const MacDemo: React.FC = () => (
     <Sequence durationInFrames={INTRO}><Intro /></Sequence>
     <Sequence from={INTRO} durationInFrames={REC_SECONDS * 30}><Recording /></Sequence>
     <Sequence from={INTRO + REC_SECONDS * 30} durationInFrames={END}><End /></Sequence>
+    <Music dropAt={INTRO} total={MAC_TOTAL} />
+    <Effects events={[
+      [INTRO - 6, "whoosh"], [INTRO + REC_SECONDS * 30 - 6, "whoosh"],
+      // Key presses in the recording (seconds), from demo/mac/run.sh's typing script.
+      ...(macEvents as [number, Sfx][]).map(([sec, kind]) => [INTRO + sec * 30, kind] as [number, Sfx]),
+    ]} />
   </AbsoluteFill>
 );
