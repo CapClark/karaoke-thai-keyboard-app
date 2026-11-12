@@ -1,5 +1,7 @@
 # Credits
 
+The code is licensed under the GNU General Public License v3 (see [LICENSE](LICENSE)).
+
 The word data is derived from the sources below; only word lists, spellings and counts are included, never
 the original texts.
 

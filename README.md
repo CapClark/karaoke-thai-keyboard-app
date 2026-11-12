@@ -1,6 +1,6 @@
 # Karaoke Thai Keyboard
 
-Source for the Karaoke Thai Keyboard: the paid [iPhone/iPad app](https://capclark.github.io/karaoke-thai-keyboard/), the free Mac input method and the web page. Data sources are listed in [CREDITS.md](CREDITS.md). The support page and privacy policy are published from the separate repository `CapClark/karaoke-thai-keyboard`, which also hosts the Mac download.
+Source for the Karaoke Thai Keyboard: the paid [iPhone/iPad app](https://capclark.github.io/karaoke-thai-keyboard/), the free Mac input method and the web page. Licensed under the [GNU GPL v3](LICENSE): you may use and modify it, and anything you distribute that is built from it must be open source under the same licence. Copyright (c) 2026 Peeranat Sugsavanvit. Data sources are listed in [CREDITS.md](CREDITS.md). The support page and privacy policy are published from the separate repository `CapClark/karaoke-thai-keyboard`, which also hosts the Mac download.
 
 Type Thai by sound, like Chinese pinyin input: `sawatdeekrap` → สวัสดีครับ.
 
