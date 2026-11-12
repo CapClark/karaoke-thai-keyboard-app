@@ -8,6 +8,8 @@
 	<string>ThaiPinyin</string>
 	<key>CFBundleIdentifier</key>
 	<string>com.kenpeeranat.inputmethod.ThaiPinyin</string>
+	<key>CFBundleIconFile</key>
+	<string>AppIcon</string>
 	<key>CFBundleName</key>
 	<string>Karaoke Thai</string>
 	<key>CFBundleDisplayName</key>
@@ -15,9 +17,9 @@
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>1.0</string>
+	<string>1.0.1</string>
 	<key>CFBundleVersion</key>
-	<string>1</string>
+	<string>2</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>13.0</string>
 	<key>LSBackgroundOnly</key>

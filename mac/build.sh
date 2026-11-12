@@ -25,7 +25,10 @@ cp -R "$APP/Contents/Resources" "$T/Contents/" && cp Info.plist "$T/Contents/"
 swiftc -O -module-name ThaiPinyin -framework Cocoa -framework InputMethodKit -framework JavaScriptCore \
   Sources/Engine.swift Sources/InputController.swift Sources/CandidateWindow.swift Tests/main.swift -o "$T/Contents/MacOS/Tests"
 "$T/Contents/MacOS/Tests" | tail -1
-swift make_icon.swift "$APP/Contents/Resources/icon.tiff"
+swift make_icon.swift menu "$APP/Contents/Resources/icon.tiff"
+# App icon (Finder, System Settings): the iPhone app's icon in the Mac icon shape.
+swift make_icon.swift app ../ios/App/Assets.xcassets/AppIcon.appiconset/icon.png build/AppIcon.iconset
+iconutil -c icns build/AppIcon.iconset -o "$APP/Contents/Resources/AppIcon.icns"
 codesign --force --sign - "$APP"
 
 DEST="$HOME/Library/Input Methods"

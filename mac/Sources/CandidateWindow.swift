@@ -36,7 +36,7 @@ final class CandidateWindow: NSObject {
         bg.layer?.masksToBounds = true
 
         inputLabel.font = .monospacedSystemFont(ofSize: 12, weight: .regular)
-        inputLabel.textColor = .systemOrange
+        inputLabel.textColor = .secondaryLabelColor
 
         row.orientation = .horizontal
         row.spacing = 4
