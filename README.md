@@ -6,7 +6,13 @@ Type Thai by sound, like Chinese pinyin input: `sawatdeekrap` → สวัส�
 
 [![Demo: typing sawatdeekrap gives สวัสดีครับ](docs/demo.gif)](docs/demo.mp4)
 
-[Watch the demo in full quality (MP4, 33 s)](docs/demo.mp4). The video is made with [Remotion](https://www.remotion.dev) from `demo/`; the Thai guesses shown are the engine's real output (`node demo/cands.js . sawatdeekrap > demo/src/cands.json`). To re-render: `cd demo && npm install && npx remotion render src/index.ts Demo ../docs/demo.mp4`.
+[Watch the demo in full quality (MP4, 33 s)](docs/demo.mp4).
+
+On the Mac (a real screen recording of the input method in TextEdit):
+
+[![Mac demo: typing in TextEdit with Karaoke Thai](docs/demo-mac.gif)](docs/demo-mac.mp4)
+
+[Mac demo (MP4, 27 s)](docs/demo-mac.mp4). Recorded with `demo/mac/run.sh`, then framed with the `MacDemo` composition in `demo/`. The video is made with [Remotion](https://www.remotion.dev) from `demo/`; the Thai guesses shown are the engine's real output (`node demo/cands.js . sawatdeekrap > demo/src/cands.json`). To re-render: `cd demo && npm install && npx remotion render src/index.ts Demo ../docs/demo.mp4` (or `MacDemo ../docs/demo-mac.mp4`).
 
 ## Mac keyboard (works in every app)
 
