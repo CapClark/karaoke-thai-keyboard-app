@@ -54,7 +54,8 @@ fs.writeFileSync(file, "window.THAI_DICT=" + JSON.stringify(out) + ";\n");
 // (web/personal.js) included, so the keyboard loads a single small file.
 global.window = global;
 require(path.join(dir, "extra.js"));
-try { require(path.join(dir, "personal.js")); } catch (e) { window.THAI_PERSONAL = []; }
+// NO_PERSONAL=1 leaves your own words out: use it for any build that goes to other people.
+try { if (process.env.NO_PERSONAL) throw 0; require(path.join(dir, "personal.js")); } catch (e) { window.THAI_PERSONAL = []; }
 const lines = [];
 out.w.forEach((w, i) => lines.push(["W", w, out.r[i], out.f[i], out.k ? out.k[i] : ""].join("\t")));
 out.p.forEach((p, i) => lines.push(["P", p[0], p[1], p[2], p[3] || "", out.pk ? out.pk[i] : ""].join("\t")));
