@@ -22,6 +22,7 @@ final class KeyboardViewController: UIInputViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
+        KeyLog.note("LIFE viewDidLoad pid=\(ProcessInfo.processInfo.processIdentifier)"); KeyLog.flush()
         _ = Engine.shared // start loading the word list now
         view.addSubview(bar)
         view.addSubview(keys) // after the bar so top-row letter popups draw over it
@@ -117,6 +118,7 @@ final class KeyboardViewController: UIInputViewController {
     private let gate = Gate()
 
     override func viewWillAppear(_ animated: Bool) {
+        KeyLog.note("LIFE viewWillAppear bounds=\(view.bounds.size)"); KeyLog.flush()
         if Gate.enabled { Task { await gate.refreshUnlocked() } }
         super.viewWillAppear(animated)
         applyHeight(wantedHeight())
@@ -136,6 +138,7 @@ final class KeyboardViewController: UIInputViewController {
 
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
+        KeyLog.note("LIFE viewDidAppear bounds=\(view.bounds.size)")
         #if DEBUG
         if stallLink == nil {
             stallLink = CADisplayLink(target: self, selector: #selector(frameTick(_:)))
@@ -203,6 +206,11 @@ final class TouchWatcher: UIGestureRecognizer {
         KeyLog.flush()
     }
 
+    override func viewDidDisappear(_ animated: Bool) {
+        super.viewDidDisappear(animated)
+        KeyLog.note("LIFE viewDidDisappear"); KeyLog.flush()
+    }
+
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
         KeyLog.note("viewWillDisappear (buffer was \(buffer))")
@@ -219,8 +227,17 @@ final class TouchWatcher: UIGestureRecognizer {
         Engine.shared.trim()
     }
 
+    #if DEBUG
+    private var lastLoggedSize = CGSize.zero
+    #endif
     override func viewWillLayoutSubviews() {
         super.viewWillLayoutSubviews()
+        #if DEBUG
+        if view.bounds.size != lastLoggedSize {
+            lastLoggedSize = view.bounds.size
+            KeyLog.note("LIFE layout bounds=\(view.bounds.size) window=\(String(describing: view.window?.bounds.size))"); KeyLog.flush()
+        }
+        #endif
         let w = view.bounds.width
         let landscape = w > UIScreen.main.bounds.height && traitCollection.userInterfaceIdiom == .phone
         let pad = traitCollection.userInterfaceIdiom == .pad
