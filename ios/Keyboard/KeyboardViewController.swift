@@ -94,9 +94,12 @@ final class KeyboardViewController: UIInputViewController {
     private static let hapticStrength: CGFloat = 0.65
     private func tap() {
         guard hapticsAllowed, let haptic else { return }
+        let t0 = Date()
         if #available(iOS 17.5, *) { haptic.impactOccurred(intensity: Self.hapticStrength, at: .zero) }
         else { haptic.impactOccurred(intensity: Self.hapticStrength) }
         haptic.prepare() // keeps the Taptic Engine awake for the next key
+        let ms = Date().timeIntervalSince(t0) * 1000
+        if ms > 3 { KeyLog.note("haptic took \(Int(ms))ms") }
     }
 
     /// Made and woken up before the first key, so the first tap isn't late.
@@ -121,8 +124,26 @@ final class KeyboardViewController: UIInputViewController {
         readyHaptic()
     }
 
+    #if DEBUG
+    /// Debug: notes every moment the keyboard's main thread misses frames for over 50 ms.
+    private var stallLink: CADisplayLink?
+    private var lastFrame: CFTimeInterval = 0
+    @objc private func frameTick(_ link: CADisplayLink) {
+        if lastFrame > 0, link.timestamp - lastFrame > 0.05 { KeyLog.note("STALL \(Int((link.timestamp - lastFrame) * 1000))ms") }
+        lastFrame = link.timestamp
+    }
+    #endif
+
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
+        #if DEBUG
+        if stallLink == nil {
+            stallLink = CADisplayLink(target: self, selector: #selector(frameTick(_:)))
+            stallLink?.add(to: .main, forMode: .common)
+        }
+        lastFrame = 0
+        KeyLog.note("haptics \(hapticsAllowed ? "on" : "off")")
+        #endif
         // iOS holds touches near the screen edges back for a moment to check for system
         // swipes, which makes the keys feel late. The keys handle touches themselves.
         setNeedsUpdateOfScreenEdgesDeferringSystemGestures()
@@ -185,6 +206,9 @@ final class TouchWatcher: UIGestureRecognizer {
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
         KeyLog.note("viewWillDisappear (buffer was \(buffer))")
+        #if DEBUG
+        stallLink?.invalidate(); stallLink = nil
+        #endif
         KeyLog.flush()
         buffer = ""; cands = []; candsFor = nil
         Engine.shared.saveSoon()

@@ -13,8 +13,7 @@ enum KeyLog {
     static func note(_ s: @autoclosure () -> String) {
         let ms = Int(Date().timeIntervalSince(start) * 1000)
         lines.append("\(ms)\t\(s())")
-        if lines.count > 3000 { lines.removeFirst(lines.count - 3000) }
-        if lines.count % 40 == 0 { flush() }
+        if lines.count > 4000 { lines.removeFirst(lines.count - 4000) }
     }
 
     static func flush() {

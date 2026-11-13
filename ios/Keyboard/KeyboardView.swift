@@ -314,7 +314,7 @@ final class KeyboardView: UIView {
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         for t in touches {
             guard let c = cap(at: t.location(in: self)) else { KeyLog.note("down nokey"); continue }
-            KeyLog.note("down \(c.key.label) y=\(Int(t.location(in: self).y)) active=\(active.count) inSet=\(touches.count)")
+            KeyLog.note("down \(c.key.label) y=\(Int(t.location(in: self).y)) active=\(active.count) inSet=\(touches.count) late=\(Int((ProcessInfo.processInfo.systemUptime - t.timestamp) * 1000))ms")
             // A second finger lands before the first lifts: type the first key now.
             for (other, oc) in active where oc.key.kind != .delete && oc.key.kind != .globe {
                 KeyLog.note("rollover fires \(oc.key.label)")
