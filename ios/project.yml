@@ -9,8 +9,8 @@ settings:
     DEVELOPMENT_TEAM: V4YMT449CL
     CODE_SIGN_STYLE: Automatic
     SWIFT_VERSION: "5.0"
-    MARKETING_VERSION: "1.0.1"
-    CURRENT_PROJECT_VERSION: "7"
+    MARKETING_VERSION: "1.1"
+    CURRENT_PROJECT_VERSION: "8"
     TARGETED_DEVICE_FAMILY: "1,2"
 targets:
   ThaiPinyin:
@@ -19,6 +19,11 @@ targets:
     sources:
       - path: App
         excludes: ["*.storekit"] # local StoreKit testing only (Xcode scheme option), not shipped
+      - path: Shared
+    entitlements:
+      path: App/ThaiPinyin.entitlements
+      properties:
+        com.apple.security.application-groups: [group.com.kenpeeranat.KaraokeThai]
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.kenpeeranat.KaraokeThai
@@ -32,10 +37,15 @@ targets:
     platform: iOS
     sources:
       - path: Keyboard
+      - path: Shared
       # The word list (with web/extra.js and web/personal.js folded in), written by
       # tools/mobile_dict.js. The engine is ThaiEngine.swift, checked against web/engine.js.
       - path: ../web/dict.mobile.txt
         buildPhase: resources
+    entitlements:
+      path: Keyboard/ThaiPinyinKeyboard.entitlements
+      properties:
+        com.apple.security.application-groups: [group.com.kenpeeranat.KaraokeThai]
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.kenpeeranat.KaraokeThai.Keyboard

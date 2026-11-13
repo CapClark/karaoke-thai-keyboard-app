@@ -1,13 +1,13 @@
 // Free-plan limit logic (Keyboard/Gate.swift). Run:
-//   swiftc Keyboard/Gate.swift GateTests/main.swift -o /tmp/gatetest && /tmp/gatetest
+//   swiftc Keyboard/Gate.swift Shared/SharedState.swift GateTests/main.swift -o /tmp/gatetest && /tmp/gatetest
 import Foundation
 func check(_ c: Bool, _ m: String) { print(c ? "ok  " : "FAIL", m); if !c { failed = true } }
 var failed = false
 let d = UserDefaults(suiteName: "gatetest")!; d.removePersistentDomain(forName: "gatetest")
 var t = Date(timeIntervalSince1970: 1_800_000_000)
-let off = Gate(defaults: d, now: { t })
+let off = Gate(defaults: d, now: { t }, active: false, shared: false)
 check(off.mayConvert && off.remainingToday == nil, "switched off: no limit")
-let g = Gate(defaults: d, now: { t }, active: true)
+let g = Gate(defaults: d, now: { t }, active: true, shared: false)
 check(g.inTrial && g.remainingToday == nil, "first day: trial, no limit")
 t += 8 * 86_400
 check(!g.inTrial && g.remainingToday == 50, "after trial: 50 a day")

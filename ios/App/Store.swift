@@ -6,9 +6,9 @@ import SwiftUI
 /// as in Keyboard/Gate.swift.
 @MainActor
 final class Store: ObservableObject {
-    static let enabled = false
+    static let enabled = true
     static let productID = "com.kenpeeranat.KaraokeThai.unlock"
-    static let firstFreeBuild = "100"
+    static let firstFreeBuild = "8"
 
     @Published private(set) var product: Product?
     @Published private(set) var unlocked = false
@@ -41,11 +41,13 @@ final class Store: ObservableObject {
         for await result in Transaction.currentEntitlements {
             if case .verified(let t) = result, t.productID == Self.productID, t.revocationDate == nil { owned = true }
         }
-        if !owned, case .verified(let app)? = try? await AppTransaction.shared {
-            // Downloaded while the app was paid: everything stays unlocked.
+        // Downloaded while the app was paid: everything stays unlocked. App Store downloads
+        // only: in TestFlight and the sandbox originalAppVersion is always "1.0".
+        if !owned, case .verified(let app)? = try? await AppTransaction.shared, app.environment == .production {
             owned = app.originalAppVersion.compare(Self.firstFreeBuild, options: .numeric) == .orderedAscending
         }
         unlocked = owned
+        SharedState.unlocked = owned // for the keyboard (read while Full Access is on)
     }
 
     func buy() async {

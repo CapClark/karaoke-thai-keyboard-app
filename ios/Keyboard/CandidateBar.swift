@@ -58,6 +58,8 @@ final class CandidateBar: UIView {
     /// A one-off message in place of the hint (e.g. the free plan's daily limit), until the next letter.
     func showNotice(_ text: String) {
         hint.text = text
+        hint.numberOfLines = 2
+        hint.font = .systemFont(ofSize: 12)
         hint.adjustsFontSizeToFitWidth = true
         hint.minimumScaleFactor = 0.7
         hint.isHidden = false
@@ -70,6 +72,8 @@ final class CandidateBar: UIView {
         if noticeShown && !input.isEmpty {
             noticeShown = false
             hint.text = "พิมพ์ตามเสียง · type Thai by sound"
+            hint.numberOfLines = 1
+            hint.font = .systemFont(ofSize: 14)
         }
         // The left-over letters shown after a guess depend on the input too.
         let changed = input != self.input || candidates.count != items.count

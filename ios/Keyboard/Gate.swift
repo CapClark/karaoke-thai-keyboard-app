@@ -4,35 +4,39 @@ import StoreKit
 #endif
 
 /// Free plan limits for the keyboard: a free trial, then a number of Thai words a day,
-/// unlimited once unlocked. Switched off (`enabled = false`): nothing is limited.
+/// unlimited once unlocked. With `enabled = false` nothing is limited.
 ///
-/// Before switching it on:
-/// - Create the in-app purchase `Gate.unlockProductID` in App Store Connect (non-consumable).
-/// - Check on a device that the keyboard sees the purchase (StoreKit 2 entitlements are read
-///   here too); if not, share the unlocked state from the app through an App Group.
+/// How the keyboard knows about the unlock (any one is enough):
+/// 1. its own StoreKit check (`refreshUnlocked`), remembered in the keyboard's defaults;
+/// 2. the app's check, shared through the App Group (`SharedState`; iOS only lets the
+///    keyboard read it while "Allow Full Access" is on).
+/// Needs the in-app purchase `Gate.unlockProductID` (non-consumable) in App Store Connect.
 struct Gate {
-    static let enabled = false
+    static let enabled = true
     static let unlockProductID = "com.kenpeeranat.KaraokeThai.unlock"
     static let trialDays = 7
     static let dailyLimit = 50
     /// People who downloaded the app while it was paid keep everything: set this to the first
     /// build number (CFBundleVersion) released as free. On iOS, AppTransaction.originalAppVersion
     /// is the build number of the first download, not the marketing version.
-    static let firstFreeBuild = "100"
+    static let firstFreeBuild = "8"
 
     private let defaults: UserDefaults
     private let now: () -> Date
     private let active: Bool
+    private let shared: Bool
 
-    init(defaults: UserDefaults = .standard, now: @escaping () -> Date = Date.init, active: Bool = Gate.enabled) {
+    init(defaults: UserDefaults = .standard, now: @escaping () -> Date = Date.init, active: Bool = Gate.enabled,
+         shared: Bool = true) {
         self.defaults = defaults
         self.now = now
         self.active = active
+        self.shared = shared
     }
 
-    /// Set from StoreKit (see `refreshUnlocked`); remembered so the keyboard works offline.
+    /// The keyboard's own record (from `refreshUnlocked`), or the app's through the App Group.
     var unlocked: Bool {
-        get { defaults.bool(forKey: "gate.unlocked") }
+        get { defaults.bool(forKey: "gate.unlocked") || (shared && SharedState.unlocked) }
         nonmutating set { defaults.set(newValue, forKey: "gate.unlocked") }
     }
 
@@ -69,7 +73,7 @@ struct Gate {
         defaults.set(usedToday + 1, forKey: dayKey)
     }
 
-    static let limitMessage = "หมดโควตาวันนี้ · Free words used up today. Unlock in the Karaoke Thai app."
+    static let limitMessage = "หมดโควตาวันนี้ · Free words used up today.\nUnlock in the Karaoke Thai app. Unlocked? Turn on Full Access."
 
     #if canImport(StoreKit)
     /// Looks up the purchase (or an original paid download) and remembers the answer.
@@ -79,10 +83,13 @@ struct Gate {
         for await result in Transaction.currentEntitlements {
             if case .verified(let t) = result, t.productID == Self.unlockProductID, t.revocationDate == nil { owned = true }
         }
-        if !owned, case .verified(let app)? = try? await AppTransaction.shared {
+        // Downloaded while the app was paid (App Store downloads only: in TestFlight and the
+        // sandbox originalAppVersion is always "1.0", which would unlock every tester).
+        if !owned, case .verified(let app)? = try? await AppTransaction.shared, app.environment == .production {
             owned = app.originalAppVersion.compare(Self.firstFreeBuild, options: .numeric) == .orderedAscending
         }
-        unlocked = owned
+        // Only ever set here: if the keyboard can't see StoreKit, a "no" would hide the app's "yes".
+        if owned { unlocked = true }
     }
     #endif
 }
