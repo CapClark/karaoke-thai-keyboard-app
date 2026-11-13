@@ -111,7 +111,7 @@ final class CandidateBar: UIView {
     }
 
     private func render() {
-        backgroundColor = .clear
+        backgroundColor = .touchable
         divider.backgroundColor = .clear
         typed.setTitle(input, for: .normal)
         typed.setTitleColor(theme.muted, for: .normal)

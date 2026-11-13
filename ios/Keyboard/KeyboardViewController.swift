@@ -276,7 +276,7 @@ final class TouchWatcher: UIGestureRecognizer {
         if keys.theme.dark != dark || keys.theme.palette != t.palette || bar.theme.dark != dark || view.backgroundColor == nil {
             keys.theme = t
             bar.theme = t
-            view.backgroundColor = .clear // the system keyboard backdrop shows through
+            view.backgroundColor = .touchable // the system keyboard backdrop shows through, gaps still take taps
         }
         let rt = textDocumentProxy.returnKeyType ?? .default
         let labels: [UIReturnKeyType: String] = [.go: "go", .search: "search", .send: "send", .done: "done",
