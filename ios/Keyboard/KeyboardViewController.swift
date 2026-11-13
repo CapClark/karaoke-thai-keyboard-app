@@ -135,6 +135,8 @@ final class KeyboardViewController: UIInputViewController {
 
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
+        KeyLog.note("viewWillDisappear (buffer was \(buffer))")
+        KeyLog.flush()
         buffer = ""; cands = []; candsFor = nil
         Engine.shared.saveSoon()
     }
@@ -161,6 +163,7 @@ final class KeyboardViewController: UIInputViewController {
     override func textWillChange(_ textInput: UITextInput?) {}
 
     override func textDidChange(_ textInput: UITextInput?) {
+        KeyLog.note("textDidChange type=\(String(describing: textDocumentProxy.keyboardType?.rawValue)) field=\(String(describing: fieldType?.rawValue)) buffer=\(buffer)")
         applyTheme()
         // Moved to another kind of field while the keyboard stayed up (address bar to a web page).
         if textDocumentProxy.keyboardType != fieldType { startFresh(); return }
@@ -182,6 +185,7 @@ final class KeyboardViewController: UIInputViewController {
     }
 
     private func startFresh() {
+        KeyLog.note("startFresh (buffer was \(buffer))")
         buffer = ""; cands = []; candsFor = nil; prevWord = nil
         fieldType = textDocumentProxy.keyboardType
         thai = Self.startsInThai(fieldType)
@@ -215,6 +219,7 @@ final class KeyboardViewController: UIInputViewController {
     // MARK: keys
 
     private func press(_ k: KeyKind) {
+        KeyLog.note("press \(k) buffer=\(buffer)")
         switch k {
         case .char(let c):
             if keys.page == .letters, c.count == 1, let ch = c.first, ch.isASCII, ch.isLetter {
@@ -341,7 +346,9 @@ final class KeyboardViewController: UIInputViewController {
         let input = buffer
         if Engine.shared.isReady {
             // A lookup takes a millisecond or two: letters and guesses change in the same frame.
+            let t0 = Date()
             let list = Engine.shared.candidatesNow(for: input, previous: context())
+            KeyLog.note("lookup \(input) \(Int(Date().timeIntervalSince(t0) * 1000))ms -> \(list.first?.text ?? "-")")
             cands = list; candsFor = input
             bar.show(input: input, candidates: list, loading: false)
             return
@@ -381,6 +388,7 @@ final class KeyboardViewController: UIInputViewController {
 
     private func pick(_ i: Int, from list: [Candidate]) {
         let c = list[i]
+        KeyLog.note("pick \(i) \(c.text) consume=\(c.consume) buffer=\(buffer)")
         if !gate.mayConvert { // free plan: daily words used up (only when Gate.enabled)
             commitRaw()
             bar.showNotice(Gate.limitMessage)
@@ -412,6 +420,7 @@ final class KeyboardViewController: UIInputViewController {
     /// Types the letters as they are (tap on them in the bar).
     private func commitRaw() {
         guard !buffer.isEmpty else { return }
+        KeyLog.note("commitRaw \(buffer)")
         textDocumentProxy.insertText(buffer)
         buffer = ""
         prevWord = nil
