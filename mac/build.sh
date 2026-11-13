@@ -18,7 +18,7 @@ cp ../web/phonemes.js ../web/dict.js ../web/extra.js ../web/engine.js "$APP/Cont
 [ -f ../web/personal.js ] && cp ../web/personal.js "$APP/Contents/Resources/"
 [ -f ../web/names.js ] && cp ../web/names.js "$APP/Contents/Resources/"
 # Engine tests must pass before installing.
-node ../tests/mapping.test.js && node ../tests/edge.test.js && node ../tests/accuracy.test.js && node ../tests/roundtrip.test.js 3000
+node ../tests/mapping.test.js && node ../tests/edge.test.js && node ../tests/accuracy.test.js && node ../tests/sentences.test.js && node ../tests/roundtrip.test.js 3000
 # Keyboard tests against a fake text field.
 T=build/Tests.app; mkdir -p "$T/Contents/MacOS"
 cp -R "$APP/Contents/Resources" "$T/Contents/" && cp Info.plist "$T/Contents/"
