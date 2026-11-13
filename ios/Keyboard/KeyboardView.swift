@@ -131,6 +131,13 @@ final class KeyboardView: UIView {
     var onGlobe: ((UIView, UIEvent?) -> Void)?
     /// Every key press (for haptics).
     var onTouch: (() -> Void)?
+    /// How far above its top edge the keys still take touches (into the guess bar). Fast taps
+    /// on the top row often land a little high, and the bar would swallow them.
+    var reachUp: CGFloat = 0
+
+    override func point(inside point: CGPoint, with event: UIEvent?) -> Bool {
+        bounds.inset(by: UIEdgeInsets(top: -reachUp, left: 0, bottom: 0, right: 0)).contains(point)
+    }
 
     var theme = Theme(dark: false) { didSet { caps.forEach { $0.theme = theme }; popup.backgroundColor = theme.key; popupLabel.textColor = theme.text } }
     var showsGlobe = true { didSet { if oldValue != showsGlobe { rebuild() } } }
