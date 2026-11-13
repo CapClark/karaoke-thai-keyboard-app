@@ -124,6 +124,12 @@ final class KeyCap: UIView {
 /// The keys. Draws its own key caps and handles touches itself, so the gaps between
 /// keys still count (a touch goes to the nearest key) and fast typing with two thumbs
 /// doesn't drop letters.
+extension UIColor {
+    /// Looks clear, but isn't: in a keyboard extension the system drops touches on fully
+    /// transparent pixels, so a tap in the gap between two keys would vanish.
+    static let touchable = UIColor(white: 0.5, alpha: 0.012)
+}
+
 final class KeyboardView: UIView {
     var onKey: ((KeyKind) -> Void)?
     var onDeleteRepeat: (() -> Void)?
@@ -160,6 +166,7 @@ final class KeyboardView: UIView {
     override init(frame: CGRect) {
         super.init(frame: frame)
         isMultipleTouchEnabled = true
+        backgroundColor = .touchable
         popup.isHidden = true
         popup.isUserInteractionEnabled = false
         popup.layer.cornerRadius = 8
