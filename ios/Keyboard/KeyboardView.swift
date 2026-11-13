@@ -313,9 +313,11 @@ final class KeyboardView: UIView {
 
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         for t in touches {
-            guard let c = cap(at: t.location(in: self)) else { continue }
+            guard let c = cap(at: t.location(in: self)) else { KeyLog.note("down nokey"); continue }
+            KeyLog.note("down \(c.key.label) y=\(Int(t.location(in: self).y)) active=\(active.count) inSet=\(touches.count)")
             // A second finger lands before the first lifts: type the first key now.
             for (other, oc) in active where oc.key.kind != .delete && oc.key.kind != .globe {
+                KeyLog.note("rollover fires \(oc.key.label)")
                 finish(other, oc, fire: true)
             }
             active[t] = c
@@ -346,6 +348,7 @@ final class KeyboardView: UIView {
             if c.key.kind == .delete { continue }
             // Slide to another key before lifting: that key counts.
             if let n = cap(at: t.location(in: self)), n !== c, n.key.kind != .delete, n.key.kind != .globe {
+                KeyLog.note("slide \(c.key.label) -> \(n.key.label)")
                 c.pressed = false
                 n.pressed = true
                 active[t] = n
@@ -356,7 +359,8 @@ final class KeyboardView: UIView {
 
     override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
         for t in touches {
-            guard let c = active[t] else { continue }
+            guard let c = active[t] else { KeyLog.note("up (already typed)"); continue }
+            KeyLog.note("up \(c.key.label) held=\(Int((t.timestamp - (began[t]?.time ?? t.timestamp)) * 1000))ms")
             if c.key.kind == .globe { onGlobe?(self, event) }
             finish(t, c, fire: true)
         }
@@ -373,6 +377,7 @@ final class KeyboardView: UIView {
                 tapped = t.timestamp - b.time < 0.4 && abs(p.x - b.at.x) < 14 && abs(p.y - b.at.y) < 14
             }
             log.notice("touch cancelled, typed anyway: \(tapped)")
+            KeyLog.note("CANCELLED \(c.key.label) typed=\(tapped)")
             finish(t, c, fire: tapped)
         }
     }
