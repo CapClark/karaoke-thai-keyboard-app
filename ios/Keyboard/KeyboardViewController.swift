@@ -82,7 +82,7 @@ final class KeyboardViewController: UIInputViewController {
         let landscape = w > UIScreen.main.bounds.height && traitCollection.userInterfaceIdiom == .phone
         let pad = traitCollection.userInterfaceIdiom == .pad
         let barH: CGFloat = pad ? 50 : (landscape ? 36 : 44)
-        let keysH: CGFloat = pad ? (w > 900 ? 330 : 270) : (landscape ? 162 : 216)
+        let keysH: CGFloat = pad ? (w > 900 ? 340 : 270) : (landscape ? 162 : 216)
         return barH + keysH
     }
 
@@ -245,7 +245,7 @@ final class TouchWatcher: UIGestureRecognizer {
         let landscape = w > UIScreen.main.bounds.height && traitCollection.userInterfaceIdiom == .phone
         let pad = traitCollection.userInterfaceIdiom == .pad
         let barH: CGFloat = pad ? 50 : (landscape ? 36 : 44)
-        let keysH: CGFloat = pad ? (w > 900 ? 330 : 270) : (landscape ? 162 : 216)
+        let keysH: CGFloat = pad ? (w > 900 ? 340 : 270) : (landscape ? 162 : 216)
         applyHeight(barH + keysH)
         if barHeight?.constant != barH { barHeight?.constant = barH }
         if keysHeight?.constant != keysH { keysHeight?.constant = keysH }

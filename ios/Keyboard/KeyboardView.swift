@@ -252,16 +252,23 @@ final class KeyboardView: UIView {
         guard W > 0, H > 0, !rows.isEmpty else { return }
         let side: CGFloat = W > 500 ? 8 : 5
         let gap: CGFloat = W > 500 ? 10 : 6
-        // Portrait phone: the rows sit where Apple's keyboard has them on screen (measured on
-        // iOS 26: first row 15.3 pt under the guess bar, rows 54 pt apart). People switch between
-        // the two keyboards and their thumbs aim by habit; with the rows 7.5 pt higher, taps
-        // landed low: on the row below, or under the space bar in the system's globe and mic
-        // strip, which keeps them. Apple's space bar runs 4 pt past this view's bottom edge, so
-        // ours starts at the same height and is that much shorter.
-        let phone = W <= 500 && rows.count == 4 && H >= 200
-        let top: CGFloat = phone ? 15.3 : 6, bottom: CGFloat = phone ? 0.5 : 6
-        let rowGap: CGFloat = phone ? 12 : (H > 260 ? 12 : (H > 180 ? 11 : 6))
-        let keyH = phone ? 42 : (H - top - bottom - rowGap * CGFloat(rows.count - 1)) / CGFloat(rows.count)
+        // The rows sit where Apple's keyboard has them on screen. People switch between the two
+        // keyboards and their thumbs aim by habit; with our rows up to 12 pt higher, taps landed
+        // low: on the row below, or under the space bar in the system's globe and mic strip,
+        // which keeps them. Measured on iOS 26 against the bottom edge of this view (iPhone 17
+        // Pro, iPad Air 11-inch): distance from the top to the first row, key height, gap between
+        // rows, room under the last row. The last row takes whatever height is left (on a phone
+        // in portrait Apple's space bar runs 4 pt past this view, so ours is that much shorter).
+        let pad = traitCollection.userInterfaceIdiom == .pad
+        let apple: (top: CGFloat, key: CGFloat, gap: CGFloat, bottom: CGFloat) =
+            pad ? (W > 900 ? (4.5, 72, 12.3, 11) : (16.5, 54.5, 9.25, 8))
+                : (W > 500 ? (8.3, 32, 8, 1.7) : (15.3, 42, 12, 0.5))
+        // Only when this view has the height those numbers were measured for (not a floating
+        // or split iPad keyboard, not a page with another number of rows).
+        let fits = rows.count == 4 && abs(apple.top + 4 * apple.key + 3 * apple.gap + apple.bottom - H) <= 6
+        let top: CGFloat = fits ? apple.top : 6, bottom: CGFloat = fits ? apple.bottom : 6
+        let rowGap: CGFloat = fits ? apple.gap : (H > 260 ? 12 : (H > 180 ? 11 : 6))
+        let keyH = fits ? apple.key : (H - top - bottom - rowGap * CGFloat(rows.count - 1)) / CGFloat(rows.count)
         let keyW = (W - 2 * side - 9 * gap) / 10
         var i = 0
         for (r, row) in rows.enumerated() {
