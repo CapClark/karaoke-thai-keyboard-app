@@ -16,6 +16,7 @@ ThaiIME.warmup(Infinity);
 
 const inputs = []; // [typed, previous word or null]
 for (const [typed] of require("../tests/cases.js")) inputs.push([typed, null]);
+for (const [typed] of require("../tests/sentences.js")) inputs.push([typed, null]);
 // With a previous word (word pairs, sentence context).
 for (const [prev, typed] of [["กิน", "khao"], ["ผม", "rak"], ["ไป", "nai"], ["ขอบคุณ", "krap"], ["ไม่", "mai"], ["คุณ", "khao"],
   ["เขา", "pai"], ["ทำ", "ngan"], ["นะ", "ka"], ["มาก", "mak"]]) inputs.push([typed, prev]);

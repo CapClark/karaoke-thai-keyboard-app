@@ -166,6 +166,8 @@
     for (const [w, , r] of mine) if (r && !wordId.has(w)) addWord(w, [r], 500);
     T.push(["extra", Date.now()]);
     notId = wordId.get("ไม่") ?? -2;
+    inId = wordId.get("ใน") ?? -2;
+    politeIds = new Set([...POLITE].map((w) => wordId.get(w)).filter((x) => x !== undefined));
     enderIds = new Set([...ENDERS].map((w) => wordId.get(w)).filter((x) => x !== undefined));
     TOTAL = freq.reduce((a, b) => a + b, 0) + words.length;
     T.push(["misc", Date.now()]);
@@ -303,7 +305,10 @@
   const ENDERS = new Set(["ครับ", "ค่ะ", "คะ", "นะ", "ไหม", "มั้ย", "เหรอ", "หรอ", "จ้า", "จ้ะ", "นะคะ", "นะครับ",
     "เลย", "ด้วย", "กัน", "แล้ว", "หรือเปล่า", "รึเปล่า", "เปล่า", "ป่ะ", "สิ", "ล่ะ", "แหละ", "เนอะ", "อะ", "อ่ะ", "ยัง", "บ้าง"]);
   let enderIds = null;
-  let notId = -2;
+  let notId = -2, inId = -2;
+  // Polite endings: ใน ("in") is never right before one (yuunaika = อยู่ไหนคะ, not อยู่ในคะ).
+  const POLITE = new Set(["ครับ", "ค่ะ", "คะ", "นะ", "จ้ะ", "จ้า", "นะคะ", "นะครับ"]);
+  let politeIds = null;
   // Is the word's first consonant ห (after a leading vowel sign like ไ เ แ โ ใ)?
   const startsWithHo = (w) => w.replace(/^[เแโใไ]/, "")[0] === "ห";
 
@@ -437,6 +442,7 @@
             if (L.shortA && SHORT_A_WORD.test(words[id])) cost -= SHORT_A_BONUS;
             if (j === n && !pen && enderIds.has(id)) cost -= 3;
             if (j === n && id === notId) cost += 3; // ไม่ almost never ends a sentence (that's ไหม)
+            if (politeIds.has(id) && (s.last === inId || phraseLast.get(s.last) === inId)) cost += 3;
             states[j].push({ cost, ids: [...s.ids, id], last: id, last2: s.last, lastKey: pen ? null : L.k,
                              lens: [...s.lens, j - i] });
           }

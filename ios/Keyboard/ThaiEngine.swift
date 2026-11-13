@@ -223,7 +223,10 @@ final class ThaiEngine {
     // Near-sound index: every key with one sound removed -> the keys (sorted, by index).
     private var delKeys: [String] = [], delVals: [Int32] = []
     private var buckets: [UInt8: [[Int32]]] = [:] // first sound -> length -> keys
-    private var notId = -2
+    private var notId = -2, inId = -2
+    // Polite endings: ใน ("in") is never right before one (yuunaika = อยู่ไหนคะ, not อยู่ในคะ).
+    private static let POLITE = ["ครับ", "ค่ะ", "คะ", "นะ", "จ้ะ", "จ้า", "นะคะ", "นะครับ"]
+    private var politeIds = Set<Int>()
     private var enderIds = Set<Int>()
     private static let B: UInt64 = 131072
     private static let REPEAT = -1 // stands for ๆ
@@ -318,6 +321,8 @@ final class ThaiEngine {
         // Your own words (names, slang) that the word list lacks.
         for (w, _, r) in mine where !r.isEmpty && wordId[Exact(w)] == nil { addWord(w, [r], 500, nil) }
         notId = wordId[Exact("ไม่")].map(Int.init) ?? -2
+        inId = wordId[Exact("ใน")].map(Int.init) ?? -2
+        politeIds = Set(Self.POLITE.compactMap { wordId[Exact($0)].map(Int.init) })
         enderIds = Set(Self.ENDERS.compactMap { wordId[Exact($0)].map(Int.init) })
         total = freq.reduce(0, +) + Double(words.count)
         let u = (0..<words.count).map(uni)
@@ -702,6 +707,7 @@ final class ThaiEngine {
                             if L.shortA && Self.shortAWord(words[id]) { cost -= Self.SHORT_A_BONUS }
                             if j == n && pen == 0 && enderIds.contains(id) { cost -= 3 }
                             if j == n && id == notId { cost += 3 }
+                            if politeIds.contains(id), let last = s.last, last == inId || phraseLast[Int32(last)].map(Int.init) == inId { cost += 3 }
                             states[j].append(State(cost: cost, ids: s.ids + [id], last: id, last2: s.last,
                                                    lastKey: pen != 0 ? nil : L.k, lens: s.lens + [j - i]))
                         }

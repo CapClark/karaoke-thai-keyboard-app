@@ -200,3 +200,15 @@ window.THAI_EXTRA.push(
 window.THAI_EXTRA.push(
   ["แกง", "gang"], ["แล้ว", "leow"], ["แล้ว", "lew"], ["แมว", "meow"], ["เงิน", "ngen"], ["เงิน", "ngern"],
 );
+
+// Food: dishes and drinks as people order them (whole names, so the meat or
+// drink at the end isn't read as some other word: kaopadkai = ข้าวผัดไก่, not ข้าวผัดใคร).
+window.THAI_EXTRA.push(
+  ["ข้าวผัดไก่", "kaopadkai"], ["ข้าวผัดกุ้ง", "kaopadkung"], ["ข้าวผัดปู", "kaopadpu"],
+  ["กะเพราไก่", "kapraokai"], ["กะเพรากุ้ง", "kapraokung"], ["กะเพราหมูสับ", "kapraomoosap"], ["กะเพราหมูกรอบ", "kapraomookrob"],
+  ["ผัดกะเพรา", "padkaprao"], ["ข้าวเหนียวมะม่วง", "kaoniaomamuang"], ["ข้าวเหนียว", "kaoniao"],
+  ["มัสมั่น", "massaman"], ["ลาบ", "larb"], ["หมูปิ้ง", "moopings"], ["หมูปิ้ง", "mooping"],
+  ["ผัดซีอิ๊ว", "padseeew"], ["ผัดซีอิ๊ว", "padsiew"], ["ชามะนาว", "chamanao"], ["ชาไทย", "chathai"],
+  ["ข้าวขาหมู", "kaokamoo"], ["ข้าวมันไก่ทอด", "kaomankaitod"], ["ไก่ทอด", "kaitod"], ["ไข่เจียว", "kaijiao"],
+  ["ไข่ดาว", "kaidao"], ["ข้าวไข่เจียว", "kaokaijiao"], ["ต้มยำ", "tomyum"], ["น้ำแข็ง", "namkaeng"],
+);
