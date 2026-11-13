@@ -42,7 +42,7 @@ This checks the keyboard's engine against the web engine, then builds it. To put
 
 "Allow Full Access" is optional: iOS requires it for the light tap on each key (haptics). The keyboard never connects to the internet either way; nothing leaves the device.
 
-- **Keys:** Space or Return types the first guess, tap any guess, tap the typed letters to keep them as English. **EN** switches to plain English typing (**ไทย** switches back).
+- **Keys:** Space or Return types the first guess, tap any guess, tap the typed letters to keep them as English. When the letters read badly as Thai and misspell an English word, that word is offered as the second guess (`tommorow`: tomorrow; from the system's spell checker, on the device). **EN** switches to plain English typing (**ไทย** switches back).
 - **Physical keyboards:** it works with the on-screen keyboard only. iOS doesn't pass physical-keyboard typing to third-party keyboards.
 - **Installing with a free Apple ID:** the app stops opening after 7 days; reinstall from Xcode. A paid developer account lasts a year.
 
