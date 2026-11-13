@@ -16,14 +16,51 @@ struct Key {
     var function = false // grey key
 }
 
+/// Keyboard colours. `system` looks like Apple's keyboard; the others tint the keys (the
+/// system backdrop always shows through: iOS draws its own rounded keyboard shell around
+/// ours, so a coloured backdrop would leave grey bands). Picked with the palette button.
+enum Palette: String, CaseIterable {
+    case system, mango, matcha, ocean, lychee
+
+    var next: Palette {
+        let all = Palette.allCases
+        return all[(all.firstIndex(of: self)! + 1) % all.count]
+    }
+
+    private static func rgb(_ r: CGFloat, _ g: CGFloat, _ b: CGFloat) -> UIColor { UIColor(red: r, green: g, blue: b, alpha: 1) }
+
+    /// (key, function key) for light and dark.
+    func colors(dark: Bool) -> (UIColor, UIColor)? {
+        let c = Self.rgb
+        switch (self, dark) {
+        case (.system, _): return nil
+        case (.mango, false): return (c(1.00, 0.96, 0.87), c(0.97, 0.76, 0.42))
+        case (.mango, true): return (c(0.45, 0.33, 0.15), c(0.32, 0.23, 0.10))
+        case (.matcha, false): return (c(0.95, 0.99, 0.93), c(0.62, 0.78, 0.57))
+        case (.matcha, true): return (c(0.24, 0.36, 0.24), c(0.16, 0.26, 0.16))
+        case (.ocean, false): return (c(0.93, 0.96, 1.00), c(0.56, 0.71, 0.89))
+        case (.ocean, true): return (c(0.20, 0.32, 0.48), c(0.12, 0.21, 0.33))
+        case (.lychee, false): return (c(1.00, 0.94, 0.95), c(0.93, 0.67, 0.74))
+        case (.lychee, true): return (c(0.44, 0.22, 0.27), c(0.31, 0.14, 0.18))
+        }
+    }
+
+    static var saved: Palette {
+        get { Palette(rawValue: UserDefaults.standard.string(forKey: "theme.palette") ?? "") ?? .system }
+        set { UserDefaults.standard.set(newValue.rawValue, forKey: "theme.palette") }
+    }
+}
+
 struct Theme {
     let dark: Bool
+    var palette: Palette = .system
+    private var tint: (UIColor, UIColor)? { palette.colors(dark: dark) }
     var background: UIColor { dark ? UIColor(white: 0.13, alpha: 1) : UIColor(red: 0.82, green: 0.83, blue: 0.86, alpha: 1) }
     // Close to Apple's own keyboard colours.
-    var key: UIColor { dark ? UIColor(white: 0.34, alpha: 1) : .white }
-    var functionKey: UIColor { dark ? UIColor(white: 0.21, alpha: 1) : UIColor(red: 0.67, green: 0.69, blue: 0.73, alpha: 1) }
-    var pressed: UIColor { dark ? UIColor(white: 0.21, alpha: 1) : UIColor(red: 0.67, green: 0.69, blue: 0.73, alpha: 1) }
-    var pressedFunction: UIColor { dark ? UIColor(white: 0.34, alpha: 1) : .white }
+    var key: UIColor { tint?.0 ?? (dark ? UIColor(white: 0.34, alpha: 1) : .white) }
+    var functionKey: UIColor { tint?.1 ?? (dark ? UIColor(white: 0.21, alpha: 1) : UIColor(red: 0.67, green: 0.69, blue: 0.73, alpha: 1)) }
+    var pressed: UIColor { functionKey }
+    var pressedFunction: UIColor { key }
     var text: UIColor { dark ? .white : .black }
     var shadow: UIColor { dark ? UIColor(white: 0, alpha: 0.6) : UIColor(white: 0, alpha: 0.35) }
     var muted: UIColor { dark ? UIColor(white: 0.62, alpha: 1) : UIColor(white: 0.45, alpha: 1) }

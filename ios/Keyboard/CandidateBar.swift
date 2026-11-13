@@ -6,7 +6,9 @@ final class CandidateBar: UIView {
     var onPick: ((Int) -> Void)?
     var onKeepLetters: (() -> Void)?
     var onTouch: (() -> Void)?
-    var theme = Theme(dark: false) { didSet { if theme.dark != oldValue.dark { rebuildItems() }; render() } }
+    var onPalette: (() -> Void)?
+    var theme = Theme(dark: false) { didSet { if theme.dark != oldValue.dark || theme.palette != oldValue.palette { rebuildItems() }; render() } }
+    private let paletteButton = UIButton(type: .system)
 
     private let typed = UIButton(type: .custom)
     private let scroll = UIScrollView()
@@ -43,13 +45,16 @@ final class CandidateBar: UIView {
         hint.font = .systemFont(ofSize: 14)
         hint.text = "พิมพ์ตามเสียง · type Thai by sound"
         addSubview(hint)
+        paletteButton.setImage(UIImage(systemName: "paintpalette"), for: .normal)
+        paletteButton.accessibilityLabel = "Keyboard colours"
+        paletteButton.addTarget(self, action: #selector(palette), for: .touchUpInside)
+        addSubview(paletteButton)
         addSubview(divider)
         render()
     }
 
     required init?(coder: NSCoder) { fatalError() }
 
-    /// `loading`: the guesses shown are for fewer letters; keep them until the new ones arrive.
     /// A one-off message in place of the hint (e.g. the free plan's daily limit), until the next letter.
     func showNotice(_ text: String) {
         hint.text = text
@@ -60,6 +65,7 @@ final class CandidateBar: UIView {
     }
     private var noticeShown = false
 
+    /// `loading`: the guesses shown are for fewer letters; keep them until the new ones arrive.
     func show(input: String, candidates: [Candidate], loading: Bool) {
         if noticeShown && !input.isEmpty {
             noticeShown = false
@@ -113,6 +119,8 @@ final class CandidateBar: UIView {
         scroll.isHidden = input.isEmpty
         hint.isHidden = !input.isEmpty
         hint.textColor = theme.muted
+        paletteButton.isHidden = !input.isEmpty
+        paletteButton.tintColor = theme.muted
         stack.alpha = loading ? 0.5 : 1
         setNeedsLayout()
     }
@@ -126,7 +134,8 @@ final class CandidateBar: UIView {
         let size = stack.systemLayoutSizeFitting(CGSize(width: UIView.layoutFittingCompressedSize.width, height: h - 8))
         stack.frame = CGRect(x: 0, y: 4, width: size.width, height: h - 8)
         scroll.contentSize = CGSize(width: size.width + 8, height: h)
-        hint.frame = bounds.insetBy(dx: 12, dy: 0)
+        paletteButton.frame = CGRect(x: bounds.width - 44, y: 0, width: 44, height: h)
+        hint.frame = CGRect(x: 12, y: 0, width: bounds.width - 12 - 44, height: h)
         divider.frame = CGRect(x: 0, y: h - 0.5, width: bounds.width, height: 0.5)
     }
 
@@ -134,6 +143,12 @@ final class CandidateBar: UIView {
         onTouch?()
         UIDevice.current.playInputClick()
         onPick?(b.tag)
+    }
+
+    @objc private func palette() {
+        onTouch?()
+        UIDevice.current.playInputClick()
+        onPalette?()
     }
 
     @objc private func keep() {

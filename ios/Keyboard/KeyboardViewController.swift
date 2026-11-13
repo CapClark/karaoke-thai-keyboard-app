@@ -27,6 +27,10 @@ final class KeyboardViewController: UIInputViewController {
         keys.clipsToBounds = false
         bar.onPick = { [weak self] i in self?.pick(i) }
         bar.onKeepLetters = { [weak self] in self?.commitRaw() }
+        bar.onPalette = { [weak self] in
+            Palette.saved = Palette.saved.next
+            self?.applyTheme()
+        }
         keys.onKey = { [weak self] k in self?.press(k) }
         keys.onDeleteRepeat = { [weak self] in self?.deleteBackward() }
         keys.onGlobe = { [weak self] v, e in self?.handleInputModeList(from: v, with: e ?? UIEvent()) }
@@ -190,8 +194,8 @@ final class KeyboardViewController: UIInputViewController {
 
     private func applyTheme() {
         let dark = textDocumentProxy.keyboardAppearance == .dark || traitCollection.userInterfaceStyle == .dark
-        let t = Theme(dark: dark)
-        if keys.theme.dark != dark || bar.theme.dark != dark || view.backgroundColor == nil {
+        let t = Theme(dark: dark, palette: Palette.saved)
+        if keys.theme.dark != dark || keys.theme.palette != t.palette || bar.theme.dark != dark || view.backgroundColor == nil {
             keys.theme = t
             bar.theme = t
             view.backgroundColor = .clear // the system keyboard backdrop shows through
