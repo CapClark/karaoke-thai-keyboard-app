@@ -125,12 +125,29 @@ final class KeyboardViewController: UIInputViewController {
         // iOS holds touches near the screen edges back for a moment to check for system
         // swipes, which makes the keys feel late. The keys handle touches themselves.
         setNeedsUpdateOfScreenEdgesDeferringSystemGestures()
-        view.window?.gestureRecognizers?.forEach {
-            $0.delaysTouchesBegan = false
-            $0.delaysTouchesEnded = false
-            $0.cancelsTouchesInView = false // or a fast tap can be taken away before it types
-        }
+        releaseSystemGestures()
+        // iOS may add its recognizers a moment later.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in self?.releaseSystemGestures() }
         readyHaptic()
+    }
+
+    /// System gesture recognizers on the keyboard's window and the views around ours must not
+    /// hold touches back or take them away: a second finger landing before the first lifts
+    /// (fast typing) would otherwise never reach the keys.
+    private func releaseSystemGestures() {
+        var v: UIView? = view
+        while let cur = v {
+            for g in cur.gestureRecognizers ?? [] {
+                KeyLog.note("gesture \(type(of: g)) on \(type(of: cur)) cancels=\(g.cancelsTouchesInView) delays=\(g.delaysTouchesBegan) enabled=\(g.isEnabled)")
+                g.delaysTouchesBegan = false
+                g.delaysTouchesEnded = false
+                g.cancelsTouchesInView = false
+            }
+            cur.isMultipleTouchEnabled = true
+            cur.isExclusiveTouch = false
+            v = cur.superview
+        }
+        KeyLog.flush()
     }
 
     override func viewWillDisappear(_ animated: Bool) {
