@@ -4,34 +4,36 @@
 <dict>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
+	<key>CFBundleDisplayName</key>
+	<string>Karaoke Thai</string>
 	<key>CFBundleExecutable</key>
 	<string>ThaiPinyin</string>
-	<key>CFBundleIdentifier</key>
-	<string>com.kenpeeranat.inputmethod.ThaiPinyin</string>
 	<key>CFBundleIconFile</key>
 	<string>AppIcon</string>
+	<key>CFBundleIdentifier</key>
+	<string>com.kenpeeranat.inputmethod.ThaiPinyin</string>
 	<key>CFBundleName</key>
-	<string>Karaoke Thai</string>
-	<key>CFBundleDisplayName</key>
 	<string>Karaoke Thai</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>1.0.2</string>
+	<string>1.0.3</string>
 	<key>CFBundleVersion</key>
-	<string>3</string>
-	<key>LSMinimumSystemVersion</key>
-	<string>13.0</string>
-	<key>LSBackgroundOnly</key>
-	<true/>
-	<key>LSUIElement</key>
-	<true/>
-	<key>NSPrincipalClass</key>
-	<string>NSApplication</string>
+	<string>4</string>
 	<key>InputMethodConnectionName</key>
 	<string>ThaiPinyin_Connection</string>
 	<key>InputMethodServerControllerClass</key>
 	<string>ThaiPinyinInputController</string>
+	<key>LSBackgroundOnly</key>
+	<true/>
+	<key>LSMinimumSystemVersion</key>
+	<string>13.0</string>
+	<key>LSUIElement</key>
+	<true/>
+	<key>NSPrincipalClass</key>
+	<string>NSApplication</string>
+	<key>TISIconIsTemplate</key>
+	<true/>
 	<key>TISInputSourceID</key>
 	<string>com.kenpeeranat.inputmethod.ThaiPinyin</string>
 	<key>TISIntendedLanguage</key>
@@ -40,8 +42,6 @@
 	<array>
 		<string>Thai</string>
 	</array>
-	<key>TISIconIsTemplate</key>
-	<true/>
 	<key>tsInputMethodIconFileKey</key>
 	<string>icon.tiff</string>
 </dict>

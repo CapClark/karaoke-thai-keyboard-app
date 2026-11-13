@@ -541,6 +541,21 @@ final class ThaiEngine {
         if let f = s.first, "เแโใไ".unicodeScalars.contains(f) { i = 1 }
         return i < s.count && s[i] == "ห"
     }
+    // "ahn" / "aan" written out: the short sound of ัน (gahn = กัน), ahead of the long า words.
+    private static let SHORT_A_BONUS = 2.5
+    private static func shortA(_ s: [UInt8]) -> Bool {
+        if s.count < 3 { return false }
+        for i in 0..<(s.count - 2) where s[i] == 97 && (s[i + 1] == 97 || s[i + 1] == 104) && s[i + 2] == 110 { return true }
+        return false
+    }
+    private static func shortAWord(_ w: String) -> Bool {
+        var after = false
+        for u in w.unicodeScalars {
+            if after && "นณญลฬร".unicodeScalars.contains(u) { return true }
+            after = u == "\u{0E31}"
+        }
+        return false
+    }
     private static func hMarked(_ s: [UInt8]) -> Bool {
         for p in ["mh", "nh", "lh", "rh", "wh", "yh", "ngh"] where s.starts(with: p.utf8) { return true }
         return false
@@ -591,7 +606,7 @@ final class ThaiEngine {
     }
 
     private struct Other { let id: Int; let pen: Double }
-    private struct Lex { let k: String; let full: String; let cluster: Bool; let ids: [Int]; let others: [Other]; let short: Double; let hMarked: Bool }
+    private struct Lex { let k: String; let full: String; let cluster: Bool; let ids: [Int]; let others: [Other]; let short: Double; let hMarked: Bool; let shortA: Bool }
     private var lexCache: [String: Lex] = [:]
     private func lex(_ chunk: [UInt8]) -> Lex {
         let cs = String(decoding: chunk, as: UTF8.self)
@@ -615,7 +630,7 @@ final class ThaiEngine {
             }
         }
         let L = Lex(k: t.key, full: t.full, cluster: t.full != t.key, ids: ids, others: others,
-                    short: t.key.utf8.count < 2 ? 5 : 0, hMarked: Self.hMarked(chunk))
+                    short: t.key.utf8.count < 2 ? 5 : 0, hMarked: Self.hMarked(chunk), shortA: Self.shortA(chunk))
         if lexCache.count > 8000 { lexCache.removeAll() }
         lexCache[cs] = L
         return L
@@ -680,6 +695,7 @@ final class ThaiEngine {
                             var cost = s.cost + wcost(s.last, id, s.last2) + pen + L.short + (other?.pen ?? 0)
                             if L.cluster && hasFull(id, L.full) { cost -= 2.5 }
                             if L.hMarked && Self.startsWithHo(words[id]) { cost -= 8 }
+                            if L.shortA && Self.shortAWord(words[id]) { cost -= Self.SHORT_A_BONUS }
                             if j == n && pen == 0 && enderIds.contains(id) { cost -= 3 }
                             if j == n && id == notId { cost += 3 }
                             states[j].append(State(cost: cost, ids: s.ids + [id], last: id, last2: s.last,
@@ -794,7 +810,7 @@ final class ThaiEngine {
         func tierFor(_ k: String, _ prefix: Bool = false) -> Int {
             (prefix ? consonants(k).hasPrefix(typedC) : consonants(k) == typedC) ? 1 : 2
         }
-        let hMarked = Self.hMarked(raw)
+        let hMarked = Self.hMarked(raw), shortA = Self.shortA(raw)
         let rawSpelled = "|" + rawS + "|"
         func put(_ id: Int, _ extra: Double, _ tier: Int = 0) {
             var c = wcost(prev, id, nil) + extra
@@ -802,6 +818,7 @@ final class ThaiEngine {
             if ("|" + spell[id] + "|").contains(rawSpelled) { c -= 2 } // one of its known spellings, letter for letter
             let w = words[id]
             if hMarked && Self.startsWithHo(w) { c -= 8 }
+            if shortA && Self.shortAWord(w) { c -= Self.SHORT_A_BONUS }
             if w.utf16.count > 3 && w.unicodeScalars.reversed().starts(with: "ไม่".unicodeScalars.reversed()) { c += 2 }
             let ot = tierOf[id]
             if ot == nil || tier < ot! || (tier == ot! && c < cost[id]!) {

@@ -127,4 +127,6 @@ module.exports = [
   // vowel habits: a or e for แ, eow/eo for เอียว, ey for เอย
   ["gang", "แกง"], ["bab", "แบบ"], ["sadang", "แสดง"], ["keow", "เขียว"], ["leow", "แล้ว"], ["ley", "เลย"], ["ngen", "เงิน"],
   ["gangkeowwan", "แกงเขียวหวาน"], ["kuaiteow", "ก๋วยเตี๋ยว"], ["paiteow", "ไปเที่ยว"], ["kinleow", "กินแล้ว"], ["maipang", "ไม่แพง"],
+  // "ahn" / "aan" written out: the short ัน first
+  ["gahn", "กัน"], ["gaan", "กัน"], ["wahn", "วัน"], ["tahn", "ทัน"], ["paigahn", "ไปกัน"], ["rakgahn", "รักกัน"],
 ].filter((c) => c.length === 2);

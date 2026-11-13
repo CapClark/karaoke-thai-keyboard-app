@@ -349,6 +349,8 @@
   // What a stretch of letters could be, as whole words. Cached: the same
   // stretches come up again on every keystroke.
   const lexCache = new Map();
+  // "ahn" / "aan" written out: the short sound of ัน (gahn = กัน), ahead of the long า words.
+  const SHORT_A = /a[ah]n/, SHORT_A_WORD = /ั[นณญลฬร]/, SHORT_A_BONUS = 2.5;
   function lex(chunk) {
     let L = lexCache.get(chunk);
     if (L) return L;
@@ -372,7 +374,7 @@
       }
     }
     L = { k: t.key, full: t.full, cluster: t.full !== t.key, ids, others, short: t.key.length < 2 ? 5 : 0,
-          hMarked: /^(mh|nh|lh|rh|wh|yh|ngh)/.test(chunk) };
+          hMarked: /^(mh|nh|lh|rh|wh|yh|ngh)/.test(chunk), shortA: SHORT_A.test(chunk) };
     if (lexCache.size > 8000) lexCache.clear();
     lexCache.set(chunk, L);
     return L;
@@ -424,6 +426,7 @@
             let cost = s.cost + wcost(s.last, id, s.last2) + pen + L.short + (other ? other.pen : 0);
             if (L.cluster && hasFull(id, L.full)) cost -= 2.5; // typed "krap": ครับ, not กับ
             if (L.hMarked && startsWithHo(words[id])) cost -= 8; // typed "mhai": ไหม, not ไม่
+            if (L.shortA && SHORT_A_WORD.test(words[id])) cost -= SHORT_A_BONUS;
             if (j === n && !pen && enderIds.has(id)) cost -= 3;
             if (j === n && id === notId) cost += 3; // ไม่ almost never ends a sentence (that's ไหม)
             states[j].push({ cost, ids: [...s.ids, id], last: id, last2: s.last, lastKey: pen ? null : L.k,
@@ -488,13 +491,14 @@
     const typedC = consonants(closedKey);
     const tierFor = (k, prefix) => (prefix ? consonants(k).startsWith(typedC) : consonants(k) === typedC) ? 1 : 2;
     const tierOf = new Map();
-    const hMarked = /^(mh|nh|lh|rh|wh|yh|ngh)/.test(raw);
+    const hMarked = /^(mh|nh|lh|rh|wh|yh|ngh)/.test(raw), shortA = SHORT_A.test(raw);
     const put = (id, extra, tier = 0) => {
       let c = wcost(prev, id) + extra;
       if (hasFull(id, t.full)) c -= t.full !== t.key ? 2.5 : 0.8; // typed the cluster: krap -> ครับ
       if (("|" + spell[id] + "|").includes("|" + raw + "|")) c -= 2; // typed one of its known spellings letter for letter
       const w = words[id];
       if (hMarked && startsWithHo(w)) c -= 8; // "mhai": the typed h means a word written with ห (ไหม)
+      if (shortA && SHORT_A_WORD.test(w)) c -= SHORT_A_BONUS;
       if (w.length > 3 && w.endsWith("ไม่")) c += 2; // "...mai" at the end is usually the question ไหม
       const ot = tierOf.get(id);
       if (ot === undefined || tier < ot || (tier === ot && c < cost.get(id))) { cost.set(id, c); tierOf.set(id, tier); }
