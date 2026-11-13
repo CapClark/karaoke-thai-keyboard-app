@@ -455,16 +455,18 @@ final class TouchWatcher: UIGestureRecognizer {
     /// word they most likely misspell is offered as the second guess ("tommorow": tomorrow).
     /// Never first, so Space keeps typing Thai.
     private func suggestEnglish(for input: String, id: Int) {
-        // Reads badly as Thai: a correction, or over 2.5 a letter (good readings stay under 2.2).
-        guard thai, input.count >= 4, let first = cands.first,
-              first.isCorrection || first.cost / Double(input.count) > 2.5,
+        // Reads badly as Thai: over 3 a letter (good readings stay under 2.2). Five letters or
+        // more: shorter ones are mostly Thai words still being typed.
+        guard thai, input.count >= 5, let first = cands.first, first.cost / Double(input.count) > 3,
               input.allSatisfy({ $0.isASCII && $0.isLetter }) else { return }
         spellQueue.async { [weak self] in
             guard let self else { return }
             let range = NSRange(location: 0, length: input.utf16.count)
             guard self.speller.rangeOfMisspelledWord(in: input, range: range, startingAt: 0, wrap: false, language: "en_US").location != NSNotFound,
                   let guess = self.speller.guesses(forWordRange: range, in: input, language: "en_US")?.first,
-                  guess.lowercased() != input.lowercased(), !guess.contains(" "), abs(guess.count - input.count) <= 2 else { return }
+                  guess.lowercased() != input.lowercased(), !guess.contains(" "),
+                  // Not a shorter word: that is what a half-typed Thai word looks like (tomo: too).
+                  guess.count >= input.count - (input.count >= 8 ? 1 : 0), guess.count <= input.count + 2 else { return }
             DispatchQueue.main.async {
                 guard id == self.request, self.candsFor == input, !self.cands.isEmpty,
                       !self.cands.contains(where: { $0.kind == "english" }) else { return }
