@@ -131,9 +131,6 @@ extension UIColor {
 }
 
 final class KeyboardView: UIView {
-    /// Extra room under the bottom row on a phone (the keyboard is this much taller, keys the same size).
-    static let phoneLift: CGFloat = 8
-
     var onKey: ((KeyKind) -> Void)?
     var onDeleteRepeat: (() -> Void)?
     /// Globe key: the touch and event go to the system's keyboard switcher.
@@ -255,16 +252,21 @@ final class KeyboardView: UIView {
         guard W > 0, H > 0, !rows.isEmpty else { return }
         let side: CGFloat = W > 500 ? 8 : 5
         let gap: CGFloat = W > 500 ? 10 : 6
-        // On a phone the bottom row sits higher: thumbs reaching for the space bar land a little
-        // low, and below this view is the system's globe and mic strip, which keeps those taps.
-        // The touch area still runs to the bottom edge.
-        let top: CGFloat = 6, bottom: CGFloat = W > 500 ? 6 : 6 + Self.phoneLift // portrait phone
-        let rowGap: CGFloat = H > 260 ? 12 : (H > 180 ? 11 : 6)
-        let keyH = (H - top - bottom - rowGap * CGFloat(rows.count - 1)) / CGFloat(rows.count)
+        // Portrait phone: the rows sit where Apple's keyboard has them on screen (measured on
+        // iOS 26: first row 15.3 pt under the guess bar, rows 54 pt apart). People switch between
+        // the two keyboards and their thumbs aim by habit; with the rows 7.5 pt higher, taps
+        // landed low: on the row below, or under the space bar in the system's globe and mic
+        // strip, which keeps them. Apple's space bar runs 4 pt past this view's bottom edge, so
+        // ours starts at the same height and is that much shorter.
+        let phone = W <= 500 && rows.count == 4 && H >= 200
+        let top: CGFloat = phone ? 15.3 : 6, bottom: CGFloat = phone ? 0.5 : 6
+        let rowGap: CGFloat = phone ? 12 : (H > 260 ? 12 : (H > 180 ? 11 : 6))
+        let keyH = phone ? 42 : (H - top - bottom - rowGap * CGFloat(rows.count - 1)) / CGFloat(rows.count)
         let keyW = (W - 2 * side - 9 * gap) / 10
         var i = 0
         for (r, row) in rows.enumerated() {
             let y = top + CGFloat(r) * (keyH + rowGap)
+            let keyH = r == rows.count - 1 ? H - bottom - y : keyH // the last row takes what is left
             var frames: [CGRect] = []
             if r == rows.count - 1 {
                 // Bottom row: fixed-width keys, space takes what's left.
