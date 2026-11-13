@@ -645,21 +645,81 @@ final class ThaiEngine {
         return L
     }
 
-    private struct State { var cost: Double; var ids: [Int]; var last: Int?; var last2: Int?; var lastKey: String?; var lens: [Int] }
-    private struct Alt { let text: String; let cost: Double; let n: Int }
-    private struct Seg { let cost: Double; let ids: [Int]; let lens: [Int]; let end: Int; let alts: [Alt]; let split: State? }
+    // A slip of the finger inside a sentence: when a stretch of letters spells no word, the
+    // words it would spell with one letter put right (swapped back, a neighbouring key, an
+    // extra letter taken out) or with one missing sound put in. Each with its extra cost.
+    // Costs, set with tests/typos.test.js: BASE is added to every put-right letter, MISSING is
+    // a missing sound, MIN the shortest stretch looked at, GATE the cost per letter above
+    // which the input counts as not reading well, WIN how much cheaper a put-right reading
+    // must be to go first, LAST the extra for a slip in the last word (it may just be unfinished).
+    private static let SLIP_BASE = 3.0, SLIP_MISSING = 5.0, SLIP_MAX = 4, SLIP_GATE = 1.6, SLIP_MIN = 3, SLIP_WIN = 2.0, SLIP_LAST = 2.0
+    private var fixCache: [String: [Other]] = [:]
+    private func slipFixes(_ chunk: [UInt8], _ L: Lex) -> [Other] {
+        if !L.ids.isEmpty || chunk.count < Self.SLIP_MIN || chunk.count > 14 { return [] }
+        let cs = String(decoding: chunk, as: UTF8.self)
+        if let f = fixCache[cs] { return f }
+        var best: [Int: Double] = [:] // id -> extra cost
+        func add(_ id: Int, _ pen: Double) {
+            if phraseIds.contains(Int32(id)) { return }
+            if let o = best[id], o <= pen { return }
+            best[id] = pen
+        }
+        // The same variants as typoVariants (swap 3.2, neighbour key 3.6, drop 4), tried one by
+        // one: `add` keeps the cheapest, so no list of them is needed.
+        func tryVariant(_ v: [UInt8], _ vc: Double) {
+            guard let list = byKey[Self.tokenize(bytes: v).key] else { return }
+            for id in list.prefix(2) { add(Int(id), Self.SLIP_BASE + vc) }
+        }
+        var v = chunk
+        for i in 0..<chunk.count {
+            if i < chunk.count - 1 && chunk[i] != chunk[i + 1] {
+                v.swapAt(i, i + 1); tryVariant(v, 3.2); v.swapAt(i, i + 1)
+            }
+            for c in Self.NEIGHBOURS[chunk[i]] ?? [] { v[i] = c; tryVariant(v, 3.6) }
+            v[i] = chunk[i]
+            var d = chunk
+            d.remove(at: i)
+            tryVariant(d, 4)
+        }
+        if L.k.utf8.count >= 3 {
+            var lo = 0, hi = delKeys.count
+            while lo < hi {
+                let m = (lo + hi) >> 1
+                if delKeys[m] < L.k { lo = m + 1 } else { hi = m }
+            }
+            while lo < delKeys.count && delKeys[lo] == L.k {
+                if let id = idsOf(sortedKeys[Int(delVals[lo])]).first { add(Int(id), Self.SLIP_MISSING) }
+                lo += 1
+            }
+        }
+        // Keep the few most likely: how common the word is counts as much as the kind of slip.
+        let ranked = best.map { (id: $0.key, pen: $0.value, rank: $0.value - uni($0.key)) }
+            .sorted { $0.rank != $1.rank ? $0.rank < $1.rank : $0.id < $1.id }
+        let out = ranked.prefix(Self.SLIP_MAX).map { Other(id: $0.id, pen: $0.pen) }
+        if fixCache.count > 8000 { fixCache.removeAll() }
+        fixCache[cs] = out
+        return out
+    }
+
+    private struct State { var cost: Double; var ids: [Int]; var last: Int?; var last2: Int?; var lastKey: String?; var lens: [Int]; var fix = false; var open = false }
+    private struct Alt { let text: String; let cost: Double; let n: Int; let fix: Bool }
+    private struct Seg { let cost: Double; let ids: [Int]; let lens: [Int]; let end: Int; let alts: [Alt]; let split: State?; let fix: Bool; let open: Bool }
 
     private func textOf(_ ids: [Int]) -> String { ids.map { $0 == Self.REPEAT ? "ๆ" : words[$0] }.joined() }
 
     // Reused across keystrokes: positions before the part that changed stay valid.
     private var memoRaw: [UInt8] = [], memoPrev: Int? = nil, memoStates: [[State]]? = nil
+    private var slipRaw: [UInt8] = [], slipPrev: Int? = nil, slipStates: [[State]]? = nil
 
-    private func segment(_ raw: [UInt8], _ prev: Int?) -> Seg? {
+    /// slips: also puts one slip of the finger right (slower: only asked for when the input
+    /// doesn't read well as typed). Each kind of search keeps its own work.
+    private func segment(_ raw: [UInt8], _ prev: Int?, slips: Bool = false) -> Seg? {
         let n = raw.count
         var states: [[State]] = []
         var from = 0
         var reused = false
-        if let old = memoStates, memoPrev == prev {
+        let memoRaw = slips ? slipRaw : self.memoRaw
+        if let old = slips ? slipStates : memoStates, (slips ? slipPrev : memoPrev) == prev {
             var L = 0
             while L < n && L < memoRaw.count && raw[L] == memoRaw[L] { L += 1 }
             if L > 0 {
@@ -677,10 +737,13 @@ final class ThaiEngine {
         var i = max(0, from - 30)
         while i < n {
             if !states[i].isEmpty {
+                let canFix = slips && states[i].contains { !$0.fix } // one slip per reading: no use looking after one
                 var j = max(i + 1, from)
                 while j <= min(n, i + 30) {
                     defer { j += 1 }
-                    let L = lex(Array(raw[i..<j]))
+                    let chunk = Array(raw[i..<j])
+                    let L = lex(chunk)
+                    let fixes = canFix ? slipFixes(chunk, L) : []
                     var ids = L.ids
                     let others = L.others
                     var pen = 0.0
@@ -691,12 +754,12 @@ final class ThaiEngine {
                             .stableSorted { uni($0) > uni($1) }.prefix(3))
                         pen = 3
                     }
-                    if ids.isEmpty && others.isEmpty && !(states[i].first?.lastKey == L.k) { continue }
+                    if ids.isEmpty && others.isEmpty && fixes.isEmpty && !(states[i].first?.lastKey == L.k) { continue }
                     for s in states[i] {
                         // Same sounds as the word before: Thai writes the repeat as ๆ (makmak -> มากๆ).
                         if let lk = s.lastKey, !lk.isEmpty, L.k == lk {
                             states[j].append(State(cost: s.cost + 1.5, ids: s.ids + [Self.REPEAT], last: s.last, last2: s.last2,
-                                                   lastKey: nil, lens: s.lens + [j - i]))
+                                                   lastKey: nil, lens: s.lens + [j - i], fix: s.fix))
                         }
                         for q in 0..<(ids.count + others.count) {
                             let other: Other? = q >= ids.count ? others[q - ids.count] : nil
@@ -709,7 +772,17 @@ final class ThaiEngine {
                             if j == n && id == notId { cost += 3 }
                             if politeIds.contains(id), let last = s.last, last == inId || phraseLast[Int32(last)].map(Int.init) == inId { cost += 3 }
                             states[j].append(State(cost: cost, ids: s.ids + [id], last: id, last2: s.last,
-                                                   lastKey: pen != 0 ? nil : L.k, lens: s.lens + [j - i]))
+                                                   lastKey: pen != 0 ? nil : L.k, lens: s.lens + [j - i], fix: s.fix, open: pen > 0))
+                        }
+                        // One slip of the finger per reading.
+                        if !s.fix {
+                            for f in fixes {
+                                // The last word may just not be finished yet: a slip there has to earn more.
+                                var cost = s.cost + wcost(s.last, f.id, s.last2) + f.pen + (j == n ? Self.SLIP_LAST : 0)
+                                if j == n && enderIds.contains(f.id) { cost -= 3 }
+                                states[j].append(State(cost: cost, ids: s.ids + [f.id], last: f.id, last2: s.last,
+                                                       lastKey: nil, lens: s.lens + [j - i], fix: true))
+                            }
                         }
                     }
                     if states[j].count > Self.BEAM * 4 {
@@ -722,24 +795,26 @@ final class ThaiEngine {
             }
             i += 1
         }
-        memoRaw = raw; memoPrev = prev; memoStates = states
+        if slips { slipRaw = raw; slipPrev = prev; slipStates = states } else { self.memoRaw = raw; memoPrev = prev; memoStates = states }
         // Whole input if possible, else the longest start that reads.
         var j = n
         while j > 0 {
             defer { j -= 1 }
-            if states[j].isEmpty { continue }
-            let sorted = states[j].stableSorted { $0.cost < $1.cost }
+            // A slip is only put right when the whole input then reads: the start of an input
+            // that doesn't read to the end is taken as typed.
+            let sorted = (j == n ? states[j] : states[j].filter { !$0.fix }).stableSorted { $0.cost < $1.cost }
+            if sorted.isEmpty { continue }
             var alts: [Alt] = []
             var seen = Set<Exact>()
             for st in sorted {
                 let tx = textOf(st.ids)
                 if !seen.insert(Exact(tx)).inserted { continue }
-                alts.append(Alt(text: tx, cost: st.cost, n: st.ids.count))
+                alts.append(Alt(text: tx, cost: st.cost, n: st.ids.count, fix: st.fix))
                 if alts.count >= 3 { break }
             }
             let best = alts[0].text
             let split = sorted.first { $0.ids.count > 1 && textOf($0.ids) == best } ?? sorted.first { $0.ids.count > 1 }
-            return Seg(cost: sorted[0].cost, ids: sorted[0].ids, lens: sorted[0].lens, end: j, alts: alts, split: split)
+            return Seg(cost: sorted[0].cost, ids: sorted[0].ids, lens: sorted[0].lens, end: j, alts: alts, split: split, fix: sorted[0].fix, open: sorted[0].open)
         }
         return nil
     }
@@ -872,8 +947,19 @@ final class ThaiEngine {
             for id in idsOf(v).prefix(3).map(Int.init) { put(id, c, 0) }
         }
         // 4. Near sounds, unless the input already reads well.
-        let seg = n >= 4 ? segment(raw, prev) : nil
-        let readsWell = exactIds.count >= 4 || (seg.map { $0.end == n && $0.ids.count > 1 && $0.cost / Double(n) <= Self.FLUENT } ?? false)
+        var seg = n >= 4 ? segment(raw, prev) : nil
+        // Doesn't read well as typed: look again, allowing for one slip of the finger.
+        var slipWins = false
+        if n >= 4 && !(seg.map { $0.end == n && $0.cost / Double(n) <= Self.SLIP_GATE } ?? false) {
+            let fixed = segment(raw, prev, slips: true)
+            // With no word spelt exactly, a put-right reading that still costs clearly less than
+            // the reading as typed is the likelier one.
+            if let fixed, fixed.fix, exactIds.isEmpty {
+                slipWins = seg.map { $0.end < n || (!$0.open && fixed.cost + Self.SLIP_WIN < $0.cost) } ?? true
+            }
+            seg = fixed ?? seg
+        }
+        let readsWell = exactIds.count >= 4 || (seg.map { !$0.fix && $0.end == n && $0.ids.count > 1 && $0.cost / Double(n) <= Self.FLUENT } ?? false)
         if closedKey.utf8.count >= 3 && !fast && !readsWell {
             let kl = closedKey.utf8.count
             let budget = kl <= 4 ? 0.7 : kl <= 7 ? 1.1 : 1.6
@@ -893,11 +979,14 @@ final class ThaiEngine {
             for id in idsOf(v).prefix(3).map(Int.init) { put(id, 1.5, habit ? 0 : 1) }
         }
 
+        // ...and the input isn't the start of a longer word, and no near-sounding word is a cheaper guess.
+        if slipWins, let seg, cost.contains(where: { tierOf[$0.key] == 0 || (tierOf[$0.key] == 1 && $0.value < seg.cost) }) { slipWins = false }
         var items = costOrder.map { Item(text: words[$0], c: cost[$0]!, tier: tierOf[$0]!, kind: "word", consume: n) }
-        if let seg, seg.ids.count > 1 || seg.end < n || seg.alts.contains(where: { $0.n > 1 }) {
+        if let seg, seg.ids.count > 1 || seg.end < n || seg.fix || seg.alts.contains(where: { $0.n > 1 || $0.fix }) {
             let partial = seg.end < n
-            let fluent = !partial && seg.ids.count > 1 && seg.cost / Double(n) <= Self.FLUENT
-            let phraseTier = fluent || (seg.ids.count == 1 && !partial) ? 0 : 1
+            // A reading that puts a slip right is a correction, however well it reads.
+            let fluent = !partial && !seg.fix && seg.ids.count > 1 && seg.cost / Double(n) <= Self.FLUENT
+            let phraseTier = slipWins || (!seg.fix && (fluent || (seg.ids.count == 1 && !partial))) ? 0 : 1
             var c = seg.cost + (partial ? 3 : 0)
             let minCost = cost.values.map { $0 - 0.01 }.min()
             if fluent && exactIds.isEmpty, let m = minCost { c = min(c, m) }
@@ -906,8 +995,8 @@ final class ThaiEngine {
             for a in seg.alts.dropFirst() {
                 // Backup readings never jump above a word that matches the whole input exactly.
                 let floor = exactIds.isEmpty ? -Double.infinity : (exactIds.map { cost[$0] ?? .infinity }.min()! + 0.01)
-                let altTier = !partial && a.cost / Double(n) <= Self.FLUENT ? 0 : 1
-                if a.n > 1 { items.append(Item(text: a.text, c: max(floor, c + 0.05 + (a.cost - seg.cost)), tier: altTier, kind: "phrase", consume: seg.end)) }
+                let altTier = !partial && !a.fix && a.cost / Double(n) <= Self.FLUENT ? 0 : 1
+                if a.n > 1 || a.fix { items.append(Item(text: a.text, c: max(floor, c + 0.05 + (a.cost - seg.cost)), tier: altTier, kind: "phrase", consume: seg.end)) }
             }
             // Pick just the first word and keep typing the rest (like pinyin).
             let multi: (ids: [Int], lens: [Int])? = seg.ids.count > 1 ? (seg.ids, seg.lens) : seg.split.map { ($0.ids, $0.lens) }
@@ -968,7 +1057,9 @@ final class ThaiEngine {
     func trimCaches() {
         tokCache.removeAll()
         lexCache.removeAll()
+        fixCache.removeAll()
         memoStates = nil
+        slipStates = nil
     }
 }
 

@@ -38,7 +38,7 @@ for t in json["tokens"] as! [[String]] {
 failures += tokBad
 
 var caseBad = 0, total = 0
-var worst = 0.0, sum = 0.0
+var worst = 0.0, sum = 0.0, worstTyped = ""
 for c in json["cases"] as! [[String: Any]] {
     let typed = c["typed"] as! String
     let prev = c["prev"] as? String
@@ -46,7 +46,8 @@ for c in json["cases"] as! [[String: Any]] {
     let s = Date()
     let got = engine.candidates(typed, limit: 36, previous: prev).map { "\($0.text)|\($0.consume)|\($0.tier)|\($0.kind)" }
     let ms = Date().timeIntervalSince(s) * 1000
-    worst = max(worst, ms); sum += ms; total += 1
+    if ms > worst { worst = ms; worstTyped = typed }
+    sum += ms; total += 1
     if got != want {
         if caseBad < 15 {
             let i = (0..<min(got.count, want.count)).first { got[$0] != want[$0] } ?? min(got.count, want.count)
@@ -56,6 +57,6 @@ for c in json["cases"] as! [[String: Any]] {
     }
 }
 failures += caseBad
-print(String(format: "parity: %d inputs, %d differ; %d spellings tokenized, %d differ; load %.2fs; per keystroke avg %.2f ms, worst %.1f ms; memory %.1f MB (word list %.1f MB)",
-             total, caseBad, (json["tokens"] as! [Any]).count, tokBad, loadTime, sum / Double(max(total, 1)), worst, memoryMB(), loadedMem - before))
+print(String(format: "parity: %d inputs, %d differ; %d spellings tokenized, %d differ; load %.2fs; per keystroke avg %.2f ms, worst %.1f ms (%@); memory %.1f MB (word list %.1f MB)",
+             total, caseBad, (json["tokens"] as! [Any]).count, tokBad, loadTime, sum / Double(max(total, 1)), worst, worstTyped, memoryMB(), loadedMem - before))
 exit(failures == 0 ? 0 : 1)

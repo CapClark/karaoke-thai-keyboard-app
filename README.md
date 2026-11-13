@@ -77,7 +77,8 @@ Open http://localhost:8765.
    and 250k common word pairs.
 3. **Ranking** (`web/engine.js`): exact sound match, then words you are still typing, letter typos
    (extra letter, swapped letters, neighbouring key), then near-sounding words. Word pairs pick the likely
-   meaning (`kin` + `khao` = กินข้าว, not กินเขา) and split whole sentences without spaces.
+   meaning (`kin` + `khao` = กินข้าว, not กินเขา) and split whole sentences without spaces. A slip of the finger
+   inside a sentence is put right too (`sawatfeekrap` = สวัสดีครับ), when the letters as typed don't read well.
    Your picks are remembered.
 4. **Your fixes** (`web/extra.js`): add `["ไทย", "spelling"]` lines for anything it gets wrong.
 5. **Your own words from Wispr Flow** (`web/personal.js`): `tools/.venv/bin/python tools/import_wispr.py` reads the Thai
@@ -117,12 +118,15 @@ To redo the counts after adding data: `.venv/bin/python casual_counts.py && .ven
 ## Tests
 
 ```bash
-node tests/mapping.test.js && node tests/edge.test.js && node tests/accuracy.test.js -v && node tests/roundtrip.test.js 3000
+node tests/mapping.test.js && node tests/edge.test.js && node tests/accuracy.test.js -v && node tests/typos.test.js && node tests/roundtrip.test.js 3000
 ```
 
 `tests/cases.js` has 231 typed spellings (textbook, chat style, typos, phrases). Right now: right word first 89.6%,
 in the top 3 98.3%, in the list 99.1%, about 7 ms per keystroke. Most misses are words that differ only in tone
 (ข้าว / เขา / เข้า), which Latin letters can't show; word pairs and your picks sort those out.
+`tests/typos.test.js` puts one slip of the finger into each longer word and sentence (a neighbouring key, two letters
+swapped, an extra letter, a missing letter; about 2,900 slips) and counts how often the wanted Thai still comes first: about
+60% for a neighbouring key or swapped letters, 70% for an extra letter, 29% for a missing one (many slips spell another real word).
 `tests/roundtrip.test.js` types the spelling of each of the 3,000 most common words (99.9% appear in the first 9 guesses)
 and throws 3,000 random inputs at the engine (no errors, under 60 ms each). `mac/Tests/main.swift` presses simulated keys
 against the real keyboard code with a fake text field: phrases, picking by number (also AZERTY), paging, Return, Esc,
