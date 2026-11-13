@@ -1,0 +1,32 @@
+{
+  "identifier" : "4E1D2C1A",
+  "nonRenewingSubscriptions" : [ ],
+  "products" : [
+    {
+      "displayPrice" : "149.0",
+      "familyShareable" : true,
+      "internalID" : "6760000001",
+      "localizations" : [
+        {
+          "description" : "No daily limit on Thai words, on all your devices.",
+          "displayName" : "Unlimited",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.kenpeeranat.KaraokeThai.unlock",
+      "referenceName" : "Unlimited",
+      "type" : "NonConsumable"
+    }
+  ],
+  "settings" : {
+    "_applicationInternalID" : "6833730979",
+    "_developerTeamID" : "V4YMT449CL",
+    "_locale" : "en_TH",
+    "_storefront" : "THA"
+  },
+  "subscriptionGroups" : [ ],
+  "version" : {
+    "major" : 3,
+    "minor" : 0
+  }
+}

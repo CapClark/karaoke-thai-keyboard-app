@@ -106,7 +106,10 @@ final class KeyboardViewController: UIInputViewController {
         haptic?.prepare()
     }
 
+    private let gate = Gate()
+
     override func viewWillAppear(_ animated: Bool) {
+        if Gate.enabled { Task { await gate.refreshUnlocked() } }
         super.viewWillAppear(animated)
         applyHeight(wantedHeight())
         startFresh()
@@ -361,6 +364,12 @@ final class KeyboardViewController: UIInputViewController {
 
     private func pick(_ i: Int, from list: [Candidate]) {
         let c = list[i]
+        if !gate.mayConvert { // free plan: daily words used up (only when Gate.enabled)
+            commitRaw()
+            bar.showNotice(Gate.limitMessage)
+            return
+        }
+        gate.didConvert()
         let prev = context()
         textDocumentProxy.insertText(c.text)
         Engine.shared.learn(c.text, previous: prev, kind: c.kind)

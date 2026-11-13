@@ -50,7 +50,21 @@ final class CandidateBar: UIView {
     required init?(coder: NSCoder) { fatalError() }
 
     /// `loading`: the guesses shown are for fewer letters; keep them until the new ones arrive.
+    /// A one-off message in place of the hint (e.g. the free plan's daily limit), until the next letter.
+    func showNotice(_ text: String) {
+        hint.text = text
+        hint.adjustsFontSizeToFitWidth = true
+        hint.minimumScaleFactor = 0.7
+        hint.isHidden = false
+        noticeShown = true
+    }
+    private var noticeShown = false
+
     func show(input: String, candidates: [Candidate], loading: Bool) {
+        if noticeShown && !input.isEmpty {
+            noticeShown = false
+            hint.text = "พิมพ์ตามเสียง · type Thai by sound"
+        }
         // The left-over letters shown after a guess depend on the input too.
         let changed = input != self.input || candidates.count != items.count
             || !zip(candidates, items).allSatisfy { $0.text == $1.text && $0.consume == $1.consume }

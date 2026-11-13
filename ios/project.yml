@@ -18,6 +18,7 @@ targets:
     platform: iOS
     sources:
       - path: App
+        excludes: ["*.storekit"] # local StoreKit testing only (Xcode scheme option), not shipped
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.kenpeeranat.KaraokeThai

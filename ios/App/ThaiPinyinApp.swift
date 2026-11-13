@@ -21,6 +21,7 @@ struct SetupView: View {
     @State private var text = ""
     @State private var current = 0
     @State private var done: Set<String> = []
+    @StateObject private var store = Store()
     @FocusState private var focused: Bool
 
     static let challenges: [Challenge] = [
@@ -99,6 +100,8 @@ struct SetupView: View {
                 } footer: {
                     Text("Space or Return types the first guess. Tap another guess to pick it.")
                 }
+
+                if Store.enabled { UnlockSection(store: store) }
 
                 Section("Spell it your way") {
                     ForEach(Self.spellings, id: \.0) { row in
