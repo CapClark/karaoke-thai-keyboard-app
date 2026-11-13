@@ -324,6 +324,28 @@
     return out;
   }
 
+  // Vowel spellings people use that say a different Thai vowel than the letters suggest:
+  //   a or e for แ    gang = แกง, pang/peng = แพง, la = และ, law = แล้ว
+  //   eo, eaw for เอียว   teo = เที่ยว, keaw = เขียว
+  //   ey for เอย      ley = เลย
+  //   u for อึ อื     ru = หรือ, kun = ขึ้น
+  // Returns [sound key, cost] for each single change (works on sound keys, not letters).
+  function habitVariants(key) {
+    const out = [];
+    if (key.length > 16) return out;
+    const add = (i, n, to, c) => out.push([key.slice(0, i) + to + key.slice(i + n), c]);
+    for (let i = 0; i < key.length; i++) {
+      const ch = key[i], before = key[i - 1], next = key[i + 1];
+      const inPair = before === "i" || before === "u" || before === "v"; // ia, ua, uea
+      if (ch === "a" && !inPair && next !== "y") add(i, 1, "x", 1);
+      if (ch === "e" && next !== "y") add(i, 1, "x", 1.3);
+      if ((ch === "e" || ch === "x") && next === "w") add(i, 2, "iaw", 1.5);
+      if (ch === "e" && next === "y") add(i, 2, "qy", 1);
+      if (ch === "u" && next !== "a" && next !== "y") add(i, 1, "v", 1.3);
+    }
+    return out;
+  }
+
   // What a stretch of letters could be, as whole words. Cached: the same
   // stretches come up again on every keystroke.
   const lexCache = new Map();
@@ -338,7 +360,18 @@
         if (!ids.includes(id) && !uaIds.includes(id) && !phraseIds.has(id)) uaIds.push(id);
       }
     }
-    L = { k: t.key, full: t.full, cluster: t.full !== t.key, ids, uaIds, short: t.key.length < 2 ? 5 : 0,
+    // Other readings of the chunk, each with its extra cost: "u" for a, then vowel habits
+    // (inside a sentence a habit needs support from the words around it, more so when
+    // the letters already spell a word as they are).
+    const others = uaIds.map((id) => ({ id, pen: ids.length ? 5 : 1.2 }));
+    if (t.key.length <= 10) {
+      for (const [v, c] of habitVariants(t.key)) {
+        for (const id of (idsOf(v) || []).slice(0, 2)) {
+          if (!ids.includes(id) && !others.some((o) => o.id === id) && !phraseIds.has(id)) others.push({ id, pen: c + (ids.length ? 2 : 1) });
+        }
+      }
+    }
+    L = { k: t.key, full: t.full, cluster: t.full !== t.key, ids, others, short: t.key.length < 2 ? 5 : 0,
           hMarked: /^(mh|nh|lh|rh|wh|yh|ngh)/.test(chunk) };
     if (lexCache.size > 8000) lexCache.clear();
     lexCache.set(chunk, L);
@@ -371,23 +404,24 @@
       if (!states[i].length) continue;
       for (let j = Math.max(i + 1, from); j <= Math.min(n, i + 30); j++) {
         const L = lex(raw.slice(i, j));
-        let ids = L.ids, uaIds = L.uaIds, pen = 0;
-        if (!ids.length && !uaIds.length && j === n && L.k.length >= 2) {
+        let ids = L.ids, pen = 0;
+        const others = L.others;
+        if (!ids.length && !others.length && j === n && L.k.length >= 2) {
           // Unfinished last word: best completions.
           ids = keysWithPrefix(L.k, 60).flatMap((kk) => idsOf(kk).slice(0, 2))
             .filter((id) => !phraseIds.has(id)).sort((a, b) => uni(b) - uni(a)).slice(0, 3);
           pen = 3;
         }
-        if (!ids.length && !uaIds.length && !(states[i][0]?.lastKey === L.k)) continue;
+        if (!ids.length && !others.length && !(states[i][0]?.lastKey === L.k)) continue;
         for (const s of states[i]) {
           // Same sounds as the word just before: Thai writes the repeat as ๆ (makmak -> มากๆ).
           if (s.lastKey && L.k === s.lastKey) {
             states[j].push({ cost: s.cost + 1.5, ids: [...s.ids, REPEAT], last: s.last, last2: s.last2,
                              lastKey: null, lens: [...s.lens, j - i] });
           }
-          for (let q = 0; q < ids.length + uaIds.length; q++) {
-            const isUa = q >= ids.length, id = isUa ? uaIds[q - ids.length] : ids[q];
-            let cost = s.cost + wcost(s.last, id, s.last2) + pen + L.short + (isUa ? (ids.length ? 5 : 1.2) : 0);
+          for (let q = 0; q < ids.length + others.length; q++) {
+            const other = q >= ids.length ? others[q - ids.length] : null, id = other ? other.id : ids[q];
+            let cost = s.cost + wcost(s.last, id, s.last2) + pen + L.short + (other ? other.pen : 0);
             if (L.cluster && hasFull(id, L.full)) cost -= 2.5; // typed "krap": ครับ, not กับ
             if (L.hMarked && startsWithHo(words[id])) cost -= 8; // typed "mhai": ไหม, not ไม่
             if (j === n && !pen && enderIds.has(id)) cost -= 3;
@@ -493,6 +527,10 @@
     // "u" written for the short a sound (krung = ครั้ง).
     for (const uaRaw of uAsA(raw)) {
       for (const id of (idsOf(tok(uaRaw).key) || []).slice(0, 4)) put(id, exactIds.length ? 2.5 : 1.2, exactIds.length ? 1 : 0);
+    }
+    // Vowel habits (a for แ, eo for เอียว, ...): count as typed sounds, a little behind exact.
+    for (const [v, c] of habitVariants(closedKey)) {
+      for (const id of (idsOf(v) || []).slice(0, 3)) put(id, c, 0);
     }
 
     // 4. Unusual spellings: sounds that are close but not equal. Skipped when the

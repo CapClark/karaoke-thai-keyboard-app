@@ -124,4 +124,7 @@ module.exports = [
   // sentences mixing phrases
   ["wannirotitmakloei", "วันนี้รถติดมากเลย"], ["kobkunmaknakrap", "ขอบคุณมากนะครับ"], ["diawtorklapna", "เดี๋ยวโทรกลับนะ"],
   ["phomkamlangpaikrap", "ผมกำลังไปครับ"], ["chanhiwkhaomak", "ฉันหิวข้าวมาก"], ["paikinkhaokanmai", "ไปกินข้าวกันไหม"],
+  // vowel habits: a or e for แ, eow/eo for เอียว, ey for เอย
+  ["gang", "แกง"], ["bab", "แบบ"], ["sadang", "แสดง"], ["keow", "เขียว"], ["leow", "แล้ว"], ["ley", "เลย"], ["ngen", "เงิน"],
+  ["gangkeowwan", "แกงเขียวหวาน"], ["kuaiteow", "ก๋วยเตี๋ยว"], ["paiteow", "ไปเที่ยว"], ["kinleow", "กินแล้ว"], ["maipang", "ไม่แพง"],
 ].filter((c) => c.length === 2);

@@ -21,7 +21,7 @@ final class ThaiEngine {
         ("uea", "va", false), ("eua", "va", false), ("uear", "va", true), ("uer", "va", true),
         ("oei", "qy", false), ("oey", "qy", true), ("euy", "qy", true), ("oeuy", "qy", true), ("eoi", "qy", false),
         ("aew", "xw", true), ("aeo", "xw", false), ("eaw", "xw", true), ("aeu", "xw", false),
-        ("iew", "iaw", true), ("iao", "iaw", false), ("eao", "iaw", false), ("eiw", "iaw", true),
+        ("iew", "iaw", true), ("iao", "iaw", false), ("eao", "iaw", false), ("eiw", "iaw", true), ("eow", "iaw", true),
         ("uay", "uay", true), ("uai", "uay", false), ("oay", "uay", true),
         ("ooi", "uy", false), ("ooy", "uy", true), ("uei", "vay", false),
         ("ae", "x", false), ("air", "x", true), ("ea", "ia", false),
@@ -565,7 +565,33 @@ final class ThaiEngine {
         return out
     }
 
-    private struct Lex { let k: String; let full: String; let cluster: Bool; let ids: [Int]; let uaIds: [Int]; let short: Double; let hMarked: Bool }
+    /// Vowel spellings that say a different Thai vowel than the letters suggest: a or e for แ
+    /// (gang = แกง), eo/eaw for เอียว (teo = เที่ยว), ey for เอย (ley = เลย), u for อึ อื (ru = หรือ).
+    /// Returns (sound key, cost) for each single change.
+    private static func habitVariants(_ key: String) -> [(String, Double)] {
+        let k = Array(key.utf8)
+        var out: [(String, Double)] = []
+        if k.count > 16 { return out }
+        func add(_ i: Int, _ n: Int, _ to: String, _ c: Double) {
+            out.append((String(decoding: Array(k[0..<i]) + Array(to.utf8) + Array(k[(i + n)...]), as: UTF8.self), c))
+        }
+        let A = UInt8(ascii: "a"), E = UInt8(ascii: "e"), X = UInt8(ascii: "x"), U = UInt8(ascii: "u")
+        let W = UInt8(ascii: "w"), Y = UInt8(ascii: "y"), I = UInt8(ascii: "i"), V = UInt8(ascii: "v")
+        for i in 0..<k.count {
+            let ch = k[i]
+            let before: UInt8 = i > 0 ? k[i - 1] : 0, next: UInt8 = i + 1 < k.count ? k[i + 1] : 0
+            let inPair = before == I || before == U || before == V // ia, ua, uea
+            if ch == A && !inPair && next != Y { add(i, 1, "x", 1) }
+            if ch == E && next != Y { add(i, 1, "x", 1.3) }
+            if (ch == E || ch == X) && next == W { add(i, 2, "iaw", 1.5) }
+            if ch == E && next == Y { add(i, 2, "qy", 1) }
+            if ch == U && next != A && next != Y { add(i, 1, "v", 1.3) }
+        }
+        return out
+    }
+
+    private struct Other { let id: Int; let pen: Double }
+    private struct Lex { let k: String; let full: String; let cluster: Bool; let ids: [Int]; let others: [Other]; let short: Double; let hMarked: Bool }
     private var lexCache: [String: Lex] = [:]
     private func lex(_ chunk: [UInt8]) -> Lex {
         let cs = String(decoding: chunk, as: UTF8.self)
@@ -577,7 +603,18 @@ final class ThaiEngine {
             for id in idsOf(tok(String(decoding: ua, as: UTF8.self)).key).prefix(3).map(Int.init)
             where !ids.contains(id) && !uaIds.contains(id) && !phraseIds.contains(Int32(id)) { uaIds.append(id) }
         }
-        let L = Lex(k: t.key, full: t.full, cluster: t.full != t.key, ids: ids, uaIds: uaIds,
+        // Other readings, each with its extra cost: "u" for a, then vowel habits (which need
+        // more support from the words around them when the letters already spell a word).
+        var others = uaIds.map { Other(id: $0, pen: ids.isEmpty ? 1.2 : 5) }
+        if t.key.utf8.count <= 10 {
+            for (v, c) in Self.habitVariants(t.key) {
+                for id in idsOf(v).prefix(2).map(Int.init)
+                where !ids.contains(id) && !others.contains(where: { $0.id == id }) && !phraseIds.contains(Int32(id)) {
+                    others.append(Other(id: id, pen: c + (ids.isEmpty ? 1 : 2)))
+                }
+            }
+        }
+        let L = Lex(k: t.key, full: t.full, cluster: t.full != t.key, ids: ids, others: others,
                     short: t.key.utf8.count < 2 ? 5 : 0, hMarked: Self.hMarked(chunk))
         if lexCache.count > 8000 { lexCache.removeAll() }
         lexCache[cs] = L
@@ -621,26 +658,26 @@ final class ThaiEngine {
                     defer { j += 1 }
                     let L = lex(Array(raw[i..<j]))
                     var ids = L.ids
-                    let uaIds = L.uaIds
+                    let others = L.others
                     var pen = 0.0
-                    if ids.isEmpty && uaIds.isEmpty && j == n && L.k.utf8.count >= 2 {
+                    if ids.isEmpty && others.isEmpty && j == n && L.k.utf8.count >= 2 {
                         // Unfinished last word: best completions.
                         ids = Array(keysWithPrefix(L.k, 60).flatMap { idsOf($0).prefix(2).map(Int.init) }
                             .filter { !phraseIds.contains(Int32($0)) }
                             .stableSorted { uni($0) > uni($1) }.prefix(3))
                         pen = 3
                     }
-                    if ids.isEmpty && uaIds.isEmpty && !(states[i].first?.lastKey == L.k) { continue }
+                    if ids.isEmpty && others.isEmpty && !(states[i].first?.lastKey == L.k) { continue }
                     for s in states[i] {
                         // Same sounds as the word before: Thai writes the repeat as ๆ (makmak -> มากๆ).
                         if let lk = s.lastKey, !lk.isEmpty, L.k == lk {
                             states[j].append(State(cost: s.cost + 1.5, ids: s.ids + [Self.REPEAT], last: s.last, last2: s.last2,
                                                    lastKey: nil, lens: s.lens + [j - i]))
                         }
-                        for q in 0..<(ids.count + uaIds.count) {
-                            let isUa = q >= ids.count
-                            let id = isUa ? uaIds[q - ids.count] : ids[q]
-                            var cost = s.cost + wcost(s.last, id, s.last2) + pen + L.short + (isUa ? (ids.isEmpty ? 1.2 : 5) : 0)
+                        for q in 0..<(ids.count + others.count) {
+                            let other: Other? = q >= ids.count ? others[q - ids.count] : nil
+                            let id = other?.id ?? ids[q]
+                            var cost = s.cost + wcost(s.last, id, s.last2) + pen + L.short + (other?.pen ?? 0)
                             if L.cluster && hasFull(id, L.full) { cost -= 2.5 }
                             if L.hMarked && Self.startsWithHo(words[id]) { cost -= 8 }
                             if j == n && pen == 0 && enderIds.contains(id) { cost -= 3 }
@@ -802,6 +839,10 @@ final class ThaiEngine {
             for id in idsOf(tok(String(decoding: ua, as: UTF8.self)).key).prefix(4).map(Int.init) {
                 put(id, exactIds.isEmpty ? 1.2 : 2.5, exactIds.isEmpty ? 0 : 1)
             }
+        }
+        // Vowel habits (a for แ, eo for เอียว, ...): count as typed sounds, a little behind exact.
+        for (v, c) in Self.habitVariants(closedKey) {
+            for id in idsOf(v).prefix(3).map(Int.init) { put(id, c, 0) }
         }
         // 4. Near sounds, unless the input already reads well.
         let seg = n >= 4 ? segment(raw, prev) : nil

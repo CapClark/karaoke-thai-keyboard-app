@@ -193,3 +193,10 @@ window.THAI_EXTRA.push(
   ["จุ๊บๆ", "jubjub"], ["จุ๊บ", "jub"], ["บ๊ายบาย", "byebye"], ["ฝันดีจ้า", "fandeeja"], ["ขอบคุณจ้า", "kobkunja"],
   ["โอเคจ้า", "okja"], ["ได้จ้า", "daija"], ["ค่าาา", "kaaa"], ["ครับผม", "kubpom"], ["ครับป๋ม", "krubpom"],
 );
+
+// ---- Everyday spellings the sound rules read as another vowel ----------------------
+// (a plain "a" for แ and "eo" for เอียว are handled by the engine; these are the ones
+// common enough to come first.)
+window.THAI_EXTRA.push(
+  ["แกง", "gang"], ["แล้ว", "leow"], ["แล้ว", "lew"], ["แมว", "meow"], ["เงิน", "ngen"], ["เงิน", "ngern"],
+);

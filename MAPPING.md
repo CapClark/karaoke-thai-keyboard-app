@@ -54,7 +54,7 @@ Tones and vowel length are not typed. Spellings that sound alike to a Thai speak
 | อิว | iw | iu, iw, io | `hiw` → Hiw |
 | เอว เอ็ว | ew | eo, ew | `leo` → Rew |
 | แอว | xw | aew, aeo, eaw | `laew` → Rxw |
-| เอียว | iaw | iao, iew, eaw | `diao` → Diaw |
+| เอียว | iaw | iao, iew, eow | `diao` → Diaw |
 | อวย | uay | uay, uai | `suay` → Suay |
 | เอือย | vay | ueai, ueay | `nueay` → Nvay |
 | ฤ ฤๅ | Rv / Ri | rue, ri | `rue` → Rv |
