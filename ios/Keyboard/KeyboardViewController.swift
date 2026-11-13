@@ -260,7 +260,13 @@ final class KeyboardViewController: UIInputViewController {
     private func space() {
         if !buffer.isEmpty {
             let list = currentCandidates()
-            if list.isEmpty { commitRaw(); textDocumentProxy.insertText(" ") } else { pick(0, from: list) }
+            // No guesses, or the free plan's daily words are used up: the letters stay as
+            // English, so the space is typed as well.
+            if list.isEmpty || !gate.mayConvert {
+                commitRaw()
+                textDocumentProxy.insertText(" ")
+                if !list.isEmpty { bar.showNotice(Gate.limitMessage) }
+            } else { pick(0, from: list) }
             return
         }
         textDocumentProxy.insertText(" ")
