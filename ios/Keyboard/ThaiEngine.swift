@@ -600,6 +600,8 @@ final class ThaiEngine {
             if ch == E && next != Y { add(i, 1, "x", 1.3) }
             if (ch == E || ch == X) && next == W { add(i, 2, "iaw", 1.5) }
             if ch == E && next == Y { add(i, 2, "qy", 1) }
+            if ch == E && next == W && !inPair { add(i, 1, "i", 1.3) } // hew = หิว
+            if ch == X && k.count > 2 { add(i, 1, "e", 1.5) } // prathaet = ประเทศ
             if ch == U && next != A && next != Y { add(i, 1, "v", 1.3) }
         }
         return out
@@ -694,7 +696,7 @@ final class ThaiEngine {
                             let id = other?.id ?? ids[q]
                             var cost = s.cost + wcost(s.last, id, s.last2) + pen + L.short + (other?.pen ?? 0)
                             if L.cluster && hasFull(id, L.full) { cost -= 2.5 }
-                            if L.hMarked && Self.startsWithHo(words[id]) { cost -= 8 }
+                            if L.hMarked && Self.startsWithHo(words[id]) { cost -= i == 0 ? 8 : 4 } // mid-sentence the h may start the next word
                             if L.shortA && Self.shortAWord(words[id]) { cost -= Self.SHORT_A_BONUS }
                             if j == n && pen == 0 && enderIds.contains(id) { cost -= 3 }
                             if j == n && id == notId { cost += 3 }

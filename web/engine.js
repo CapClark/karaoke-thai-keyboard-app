@@ -341,6 +341,8 @@
       if (ch === "e" && next !== "y") add(i, 1, "x", 1.3);
       if ((ch === "e" || ch === "x") && next === "w") add(i, 2, "iaw", 1.5);
       if (ch === "e" && next === "y") add(i, 2, "qy", 1);
+      if (ch === "e" && next === "w" && !inPair) add(i, 1, "i", 1.3); // hew = หิว
+      if (ch === "x" && key.length > 2) add(i, 1, "e", 1.5); // prathaet = ประเทศ
       if (ch === "u" && next !== "a" && next !== "y") add(i, 1, "v", 1.3);
     }
     return out;
@@ -425,7 +427,8 @@
             const other = q >= ids.length ? others[q - ids.length] : null, id = other ? other.id : ids[q];
             let cost = s.cost + wcost(s.last, id, s.last2) + pen + L.short + (other ? other.pen : 0);
             if (L.cluster && hasFull(id, L.full)) cost -= 2.5; // typed "krap": ครับ, not กับ
-            if (L.hMarked && startsWithHo(words[id])) cost -= 8; // typed "mhai": ไหม, not ไม่
+            // typed "mhai": ไหม, not ไม่ (inside a sentence the h may start the next word: chan|hiw)
+            if (L.hMarked && startsWithHo(words[id])) cost -= i === 0 ? 8 : 4;
             if (L.shortA && SHORT_A_WORD.test(words[id])) cost -= SHORT_A_BONUS;
             if (j === n && !pen && enderIds.has(id)) cost -= 3;
             if (j === n && id === notId) cost += 3; // ไม่ almost never ends a sentence (that's ไหม)

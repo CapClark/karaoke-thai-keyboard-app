@@ -128,5 +128,9 @@ module.exports = [
   ["gang", "แกง"], ["bab", "แบบ"], ["sadang", "แสดง"], ["keow", "เขียว"], ["leow", "แล้ว"], ["ley", "เลย"], ["ngen", "เงิน"],
   ["gangkeowwan", "แกงเขียวหวาน"], ["kuaiteow", "ก๋วยเตี๋ยว"], ["paiteow", "ไปเที่ยว"], ["kinleow", "กินแล้ว"], ["maipang", "ไม่แพง"],
   // "ahn" / "aan" written out: the short ัน first
+  // learner spellings (RTGS / Paiboon style, as other romanized keyboards teach)
+  ["yaak", "อยาก"], ["aroy", "อร่อย"], ["laew", "แล้ว"], ["diaw", "เดียว"], ["guaitiao", "ก๋วยเตี๋ยว"], ["yoeramani", "เยอรมนี"],
+  ["amerika", "อเมริกา"], ["angkrit", "อังกฤษ"], ["yipun", "ญี่ปุ่น"], ["sabaideemai", "สบายดีไหม"], ["dii", "ดี"],
+  ["puuchai", "ผู้ชาย"], ["phuean", "เพื่อน"], ["doen", "เดิน"], ["ngoen", "เงิน"], ["chaawbaan", "ชาวบ้าน"],
   ["gahn", "กัน"], ["gaan", "กัน"], ["wahn", "วัน"], ["tahn", "ทัน"], ["paigahn", "ไปกัน"], ["rakgahn", "รักกัน"],
 ].filter((c) => c.length === 2);
