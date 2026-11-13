@@ -1,4 +1,5 @@
 import UIKit
+import UIKit.UIGestureRecognizerSubclass
 
 /// Type Thai by sound. Letters collect in the bar above the keys; Space (or Return)
 /// types the first Thai guess, a tap types any guess, a tap on the letters types them as
@@ -131,7 +132,30 @@ final class KeyboardViewController: UIInputViewController {
         readyHaptic()
     }
 
-    /// System gesture recognizers on the keyboard's window and the views around ours must not
+    #if DEBUG
+/// Debug: notes every touch the keyboard's window receives, to tell a touch iOS never
+/// delivered from one lost on the way to the keys. Never recognizes, never cancels.
+final class TouchWatcher: UIGestureRecognizer {
+    init() {
+        super.init(target: nil, action: nil)
+        cancelsTouchesInView = false
+        delaysTouchesBegan = false
+        delaysTouchesEnded = false
+    }
+    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent) {
+        for t in touches { KeyLog.note("WINDOW down at \(Int(t.location(in: view).x)),\(Int(t.location(in: view).y)) view=\(t.view.map { String(describing: type(of: $0)) } ?? "nil")") }
+    }
+    override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent) { state = .failed }
+    override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent) {
+        for _ in touches { KeyLog.note("WINDOW cancelled") }
+        state = .failed
+    }
+    override func canPrevent(_ preventedGestureRecognizer: UIGestureRecognizer) -> Bool { false }
+    override func canBePrevented(by preventingGestureRecognizer: UIGestureRecognizer) -> Bool { false }
+}
+#endif
+
+/// System gesture recognizers on the keyboard's window and the views around ours must not
     /// hold touches back or take them away: a second finger landing before the first lifts
     /// (fast typing) would otherwise never reach the keys.
     private func releaseSystemGestures() {
@@ -142,11 +166,19 @@ final class KeyboardViewController: UIInputViewController {
                 g.delaysTouchesBegan = false
                 g.delaysTouchesEnded = false
                 g.cancelsTouchesInView = false
+                // The window's gates for system gestures (home swipe, edges) can still hold a
+                // touch while they decide; the real system gestures are handled outside the keyboard.
+                if String(describing: type(of: g)).contains("GateGestureRecognizer") { g.isEnabled = false }
             }
             cur.isMultipleTouchEnabled = true
             cur.isExclusiveTouch = false
             v = cur.superview
         }
+        #if DEBUG
+        if let w = view.window, !(w.gestureRecognizers ?? []).contains(where: { $0 is TouchWatcher }) {
+            w.addGestureRecognizer(TouchWatcher())
+        }
+        #endif
         KeyLog.flush()
     }
 

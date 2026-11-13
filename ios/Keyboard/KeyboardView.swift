@@ -346,7 +346,9 @@ final class KeyboardView: UIView {
             guard let c = active[t] else { continue }
             if c.key.kind == .globe { onGlobe?(self, event); continue }
             if c.key.kind == .delete { continue }
-            // Slide to another key before lifting: that key counts.
+            // Slide to another key before lifting: that key counts. Only for a deliberate press:
+            // in fast typing the finger often drifts onto a neighbour as it lifts (i -> j).
+            guard let b = began[t], t.timestamp - b.time >= 0.15 else { continue }
             if let n = cap(at: t.location(in: self)), n !== c, n.key.kind != .delete, n.key.kind != .globe {
                 KeyLog.note("slide \(c.key.label) -> \(n.key.label)")
                 c.pressed = false
