@@ -29,6 +29,21 @@ for (const s of ["sawatdeekrap", "ganrakrungneungnanmaraew", "chanmaikhaojaiwath
   "pomrakkun", "makmak", "khobkhunmakkrap", "wannisuksanmak", "mhaiyoo", "krungnaa", "pooyingkonnan"]) {
   for (let i = 1; i <= s.length; i++) inputs.push([s.slice(0, i), null]);
 }
+// One slip of the finger in each sentence and longer word (a neighbouring key, two letters
+// swapped, an extra letter), and a few of them typed letter by letter.
+{
+  const near = { a: "s", e: "r", i: "o", o: "p", u: "y", k: "l", n: "b", m: "n", t: "r", r: "t", d: "f", s: "a", h: "g", p: "o", g: "f", c: "v", w: "q", y: "t", l: "k", b: "v", j: "k", f: "d" };
+  const all = [...require("../tests/sentences.js"), ...require("../tests/cases.js").filter(([t]) => t.length >= 5)];
+  all.forEach(([typed], q) => {
+    const i = 1 + ((q * 7) % (typed.length - 1));
+    const slips = [typed.slice(0, i) + (near[typed[i]] || "k") + typed.slice(i + 1),
+      typed.slice(0, i - 1) + typed[i] + typed[i - 1] + typed.slice(i + 1),
+      typed.slice(0, i) + (near[typed[i]] || "k") + typed.slice(i)];
+    const slip = slips[q % 3];
+    if (q % 25 === 0) for (let n = 1; n < slip.length; n++) inputs.push([slip.slice(0, n), null]);
+    inputs.push([slip, null]);
+  });
+}
 // Proper nouns.
 for (const [, rs] of window.THAI_NAMES.filter((_, i) => i % 4 === 0)) inputs.push([rs.split("|")[0], null]);
 // Random letters (seeded, so it's the same every run).

@@ -6,6 +6,7 @@ struct Candidate {
     let consume: Int
     var kind: String = "word"
     var isCorrection = false // doesn't match every typed sound exactly
+    var cost = 0.0 // the engine's cost: about 2 or less per letter for Thai that reads well
 }
 
 /// Runs the matching engine (ThaiEngine, the Swift port of web/engine.js) on its own queue,
@@ -81,7 +82,7 @@ final class Engine {
         guard ready, !input.isEmpty else { return [] }
         return engine.candidates(input, limit: 36, previous: previous).compactMap { r in
             guard r.consume >= 1, r.consume <= input.count, !r.text.isEmpty else { return nil }
-            return Candidate(text: r.text, consume: r.consume, kind: r.kind, isCorrection: r.tier > 0)
+            return Candidate(text: r.text, consume: r.consume, kind: r.kind, isCorrection: r.tier > 0, cost: r.cost)
         }
     }
 

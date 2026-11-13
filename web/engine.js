@@ -385,21 +385,54 @@
         }
       }
     }
-    L = { k: t.key, full: t.full, cluster: t.full !== t.key, ids, others, short: t.key.length < 2 ? 5 : 0,
+    L = { k: t.key, full: t.full, cluster: t.full !== t.key, ids, others, fixes: null, short: t.key.length < 2 ? 5 : 0,
           hMarked: /^(mh|nh|lh|rh|wh|yh|ngh)/.test(chunk), shortA: SHORT_A.test(chunk) };
     if (lexCache.size > 8000) lexCache.clear();
     lexCache.set(chunk, L);
     return L;
   }
 
+  // A slip of the finger inside a sentence: when a stretch of letters spells no word, the
+  // words it would spell with one letter put right (swapped back, a neighbouring key, an
+  // extra letter taken out) or with one missing sound put in. Each with its extra cost.
+  // Costs, set with tests/typos.test.js: BASE is added to every put-right letter, MISSING is
+  // a missing sound, MIN the shortest stretch looked at, GATE the cost per letter above
+  // which the input counts as not reading well, WIN how much cheaper a put-right reading
+  // must be to go first, LAST the extra for a slip in the last word (it may just be unfinished).
+  const SLIP_BASE = 3, SLIP_MISSING = 5, SLIP_MAX = 4, SLIP_GATE = 1.6, SLIP_MIN = 3, SLIP_WIN = 2, SLIP_LAST = 2;
+  function slipFixes(chunk, key, ids) {
+    if (ids.length || chunk.length < SLIP_MIN || chunk.length > 14) return NONE;
+    const best = new Map(); // id -> extra cost
+    const add = (id, pen) => { if (!phraseIds.has(id) && !(best.get(id) <= pen)) best.set(id, pen); };
+    for (const [v, vc] of typoVariants(chunk)) {
+      const list = idsOf(P.tokenize(v).key); // not tok(): these would push real stretches out of its cache
+      for (let q = 0; q < list.length && q < 2; q++) add(list[q], SLIP_BASE + vc);
+    }
+    if (key.length >= 3) {
+      buildIndex(Infinity);
+      const longer = delIndex.get(key);
+      for (const k of longer === undefined ? NONE : typeof longer === "string" ? [longer] : longer) {
+        const list = idsOf(k);
+        if (list.length) add(list[0], SLIP_MISSING);
+      }
+    }
+    if (!best.size) return NONE;
+    // Keep the few most likely: how common the word is counts as much as the kind of slip.
+    return [...best.entries()].map(([id, pen]) => ({ id, pen, rank: pen - uni(id) }))
+      .sort((a, b) => a.rank - b.rank || a.id - b.id).slice(0, SLIP_MAX);
+  }
+
   // Beam search over ways to split the input into words. Positions before the
   // part that changed are reused from the previous keystroke, so typing a long
   // sentence stays fast.
-  let segMemo = { raw: "", prev: undefined, states: null };
-  function segment(raw, prev) {
+  // slips=true also puts one slip of the finger right (slower: only asked for when the
+  // input doesn't read well as typed). Each kind of search keeps its own work.
+  const NO_MEMO = () => ({ raw: "", prev: undefined, states: null });
+  let segMemo = NO_MEMO(), slipMemo = NO_MEMO();
+  function segment(raw, prev, slips = false) {
     const n = raw.length;
     let states, from = 0;
-    const old = segMemo;
+    const old = slips ? slipMemo : segMemo;
     if (old.states && old.prev === prev) {
       let L = 0;
       while (L < n && L < old.raw.length && raw[L] === old.raw[L]) L++;
@@ -411,11 +444,12 @@
     }
     if (!states) {
       states = Array.from({ length: n + 1 }, () => []);
-      states[0].push({ cost: 0, ids: [], last: prev, last2: null, lastKey: null, lens: [] });
+      states[0].push({ cost: 0, ids: [], last: prev, last2: null, lastKey: null, lens: [], fix: 0 });
       from = 1;
     }
     for (let i = Math.max(0, from - 30); i < n; i++) {
       if (!states[i].length) continue;
+      const canFix = slips && states[i].some((s) => !s.fix); // one slip per reading: no use looking after one
       for (let j = Math.max(i + 1, from); j <= Math.min(n, i + 30); j++) {
         const L = lex(raw.slice(i, j));
         let ids = L.ids, pen = 0;
@@ -426,12 +460,13 @@
             .filter((id) => !phraseIds.has(id)).sort((a, b) => uni(b) - uni(a)).slice(0, 3);
           pen = 3;
         }
-        if (!ids.length && !others.length && !(states[i][0]?.lastKey === L.k)) continue;
+        const fixes = canFix ? (L.fixes ||= slipFixes(raw.slice(i, j), L.k, L.ids)) : NONE;
+        if (!ids.length && !others.length && !fixes.length && !(states[i][0]?.lastKey === L.k)) continue;
         for (const s of states[i]) {
           // Same sounds as the word just before: Thai writes the repeat as ๆ (makmak -> มากๆ).
           if (s.lastKey && L.k === s.lastKey) {
             states[j].push({ cost: s.cost + 1.5, ids: [...s.ids, REPEAT], last: s.last, last2: s.last2,
-                             lastKey: null, lens: [...s.lens, j - i] });
+                             lastKey: null, lens: [...s.lens, j - i], fix: s.fix });
           }
           for (let q = 0; q < ids.length + others.length; q++) {
             const other = q >= ids.length ? others[q - ids.length] : null, id = other ? other.id : ids[q];
@@ -444,7 +479,15 @@
             if (j === n && id === notId) cost += 3; // ไม่ almost never ends a sentence (that's ไหม)
             if (politeIds.has(id) && (s.last === inId || phraseLast.get(s.last) === inId)) cost += 3;
             states[j].push({ cost, ids: [...s.ids, id], last: id, last2: s.last, lastKey: pen ? null : L.k,
-                             lens: [...s.lens, j - i] });
+                             lens: [...s.lens, j - i], fix: s.fix, open: pen > 0 });
+          }
+          // One slip of the finger per reading.
+          if (!s.fix) for (const f of fixes) {
+            // The last word may just not be finished yet: a slip there has to earn more.
+            let cost = s.cost + wcost(s.last, f.id, s.last2) + f.pen + (j === n ? SLIP_LAST : 0);
+            if (j === n && enderIds.has(f.id)) cost -= 3;
+            states[j].push({ cost, ids: [...s.ids, f.id], last: f.id, last2: s.last, lastKey: null,
+                             lens: [...s.lens, j - i], fix: 1 });
           }
         }
         if (states[j].length > BEAM * 4) {
@@ -457,19 +500,21 @@
         if (states[i + 1].length > BEAM) states[i + 1].length = BEAM;
       }
     }
-    segMemo = { raw, prev, states };
+    if (slips) slipMemo = { raw, prev, states }; else segMemo = { raw, prev, states };
     // Whole input if possible; otherwise the longest start we could read
     // (pinyin-style: convert what we can, leave the rest for more typing).
     for (let j = n; j > 0; j--) {
-      if (!states[j].length) continue;
-      const sorted = states[j].slice().sort((a, b) => a.cost - b.cost);
+      // A slip is only put right when the whole input then reads: the start of an input
+      // that doesn't read to the end is taken as typed.
+      const sorted = (j === n ? states[j].slice() : states[j].filter((st) => !st.fix)).sort((a, b) => a.cost - b.cost);
+      if (!sorted.length) continue;
       // Also keep the next-best different readings, so a wrong guess has backups.
       const alts = [], seenText = new Set();
       for (const st of sorted) {
         const tx = textOf(st.ids);
         if (seenText.has(tx)) continue;
         seenText.add(tx);
-        alts.push({ text: tx, cost: st.cost, n: st.ids.length, ids: st.ids, lens: st.lens });
+        alts.push({ text: tx, cost: st.cost, n: st.ids.length, ids: st.ids, lens: st.lens, fix: st.fix });
         if (alts.length >= 3) break;
       }
       // Word-by-word split of the best reading (for "pick just the first word"),
@@ -553,8 +598,17 @@
 
     // 4. Unusual spellings: sounds that are close but not equal. Skipped when the
     // input already reads well (several exact words, or a fluent phrase) — saves time.
-    const seg = raw.length >= 4 ? segment(raw, prev) : null;
-    const readsWell = exactIds.length >= 4 || (seg && seg.end === raw.length && seg.ids.length > 1 && seg.cost / raw.length <= FLUENT);
+    let seg = raw.length >= 4 ? segment(raw, prev) : null;
+    // Doesn't read well as typed: look again, allowing for one slip of the finger.
+    let slipWins = false;
+    if (raw.length >= 4 && !(seg && seg.end === raw.length && seg.cost / raw.length <= SLIP_GATE)) {
+      const fixed = segment(raw, prev, true);
+      // With no word spelt exactly, a put-right reading that still costs clearly less than
+      // the reading as typed is the likelier one.
+      slipWins = !!fixed && !!fixed.fix && !exactIds.length && (!seg || seg.end < raw.length || (!seg.open && fixed.cost + SLIP_WIN < seg.cost));
+      seg = fixed || seg;
+    }
+    const readsWell = exactIds.length >= 4 || (seg && !seg.fix && seg.end === raw.length && seg.ids.length > 1 && seg.cost / raw.length <= FLUENT);
     if (closedKey.length >= 3 && !fast && !readsWell) {
       const budget = closedKey.length <= 4 ? 0.7 : closedKey.length <= 7 ? 1.1 : 1.6;
       for (const { k, d } of fuzzy(closedKey, budget, false)) {
@@ -576,13 +630,16 @@
       for (const id of idsOf(v).slice(0, 3)) put(id, 1.5, habit ? 0 : 1);
     }
 
+    // ...and the input isn't the start of a longer word, and no near-sounding word is a cheaper guess.
+    if (slipWins) for (const [id, c] of cost) if (tierOf.get(id) === 0 || (tierOf.get(id) === 1 && c < seg.cost)) { slipWins = false; break; }
     const items = [...cost.entries()].map(([id, c]) => ({ text: words[id], c, tier: tierOf.get(id), roman: romans[id], kind: "word", consume: raw.length }));
-    if (seg && (seg.ids.length > 1 || seg.end < raw.length || seg.alts.some((a) => a.n > 1))) {
+    if (seg && (seg.ids.length > 1 || seg.end < raw.length || seg.fix || seg.alts.some((a) => a.n > 1 || a.fix))) {
       const partial = seg.end < raw.length;
       // A fluent multi-word reading (low cost per word) beats any single
       // look-alike word; long sentences would otherwise lose on total cost.
-      const fluent = !partial && seg.ids.length > 1 && seg.cost / raw.length <= FLUENT;
-      const phraseTier = fluent || (seg.ids.length === 1 && !partial) ? 0 : 1;
+      // A reading that puts a slip right is a correction, however well it reads.
+      const fluent = !partial && !seg.fix && seg.ids.length > 1 && seg.cost / raw.length <= FLUENT;
+      const phraseTier = slipWins || (!seg.fix && (fluent || (seg.ids.length === 1 && !partial))) ? 0 : 1;
       let c = seg.cost + (partial ? 3 : 0);
       if (fluent && !exactIds.length) c = Math.min(c, ...[...cost.values()].map((x) => x - 0.01));
       if (partial && seg.end >= raw.length * 0.6) c = Math.min(c, ...[...cost.values()].map((x) => x - 0.01));
@@ -590,8 +647,8 @@
       for (const a of seg.alts.slice(1)) {
         // Backup readings never jump above a word that matches the whole input exactly.
         const floor = exactIds.length ? Math.min(...exactIds.map((id) => cost.get(id) ?? Infinity)) + 0.01 : -Infinity;
-        const altTier = !partial && a.cost / raw.length <= FLUENT ? 0 : 1;
-        if (a.n > 1) items.push({ text: a.text, c: Math.max(floor, c + 0.05 + (a.cost - seg.cost)), tier: altTier, roman: "phrase", kind: "phrase", consume: seg.end });
+        const altTier = !partial && !a.fix && a.cost / raw.length <= FLUENT ? 0 : 1;
+        if (a.n > 1 || a.fix) items.push({ text: a.text, c: Math.max(floor, c + 0.05 + (a.cost - seg.cost)), tier: altTier, roman: "phrase", kind: "phrase", consume: seg.end });
       }
       // Pick just the first word, keep typing the rest (like pinyin).
       // Based on the best reading that has more than one word.
@@ -685,7 +742,7 @@
     try { root.localStorage?.setItem(LEARN_KEY, JSON.stringify(learned)); } catch (e) {}
   }
 
-  function resetMemo() { segMemo = { raw: "", prev: undefined, states: null }; }
+  function resetMemo() { segMemo = NO_MEMO(); slipMemo = NO_MEMO(); }
   const loadTimes = () => T.map((x, i) => i ? x[0] + " " + (x[1] - T[i - 1][1]) : "").filter(Boolean).join(", ");
   const api = { warmup, loadTimes, resetMemo, load, candidates, learn, forget, save, segment, autosave: true, tokenize: P.tokenize, size: () => words.length };
   root.ThaiIME = api;

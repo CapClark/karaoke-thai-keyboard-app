@@ -19,6 +19,9 @@ final class KeyboardViewController: UIInputViewController {
     private var shiftOn = false, capsLock = false
     private var lastShiftTap = Date.distantPast
     private static let maxLetters = 48
+    // English spelling guesses (the system's spell checker), looked up off the main thread.
+    private let speller = UITextChecker()
+    private let spellQueue = DispatchQueue(label: "ThaiPinyin.spell", qos: .userInitiated)
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -444,6 +447,7 @@ final class TouchWatcher: UIGestureRecognizer {
             KeyLog.note("lookup \(input) \(Int(Date().timeIntervalSince(t0) * 1000))ms -> \(list.first?.text ?? "-")")
             cands = list; candsFor = input
             bar.show(input: input, candidates: list, loading: false)
+            suggestEnglish(for: input, id: id)
             return
         }
         // Still loading the word list: keep the previous guesses (dimmed) until the new ones arrive.
@@ -453,6 +457,30 @@ final class TouchWatcher: UIGestureRecognizer {
             self.cands = list
             self.candsFor = input
             self.bar.show(input: input, candidates: list, loading: false)
+        }
+    }
+
+    /// When the letters don't read well as Thai and aren't an English word either, the English
+    /// word they most likely misspell is offered as the second guess ("tommorow": tomorrow).
+    /// Never first, so Space keeps typing Thai.
+    private func suggestEnglish(for input: String, id: Int) {
+        // Reads badly as Thai: a correction, or over 2.5 a letter (good readings stay under 2.2).
+        guard thai, input.count >= 4, let first = cands.first,
+              first.isCorrection || first.cost / Double(input.count) > 2.5,
+              input.allSatisfy({ $0.isASCII && $0.isLetter }) else { return }
+        spellQueue.async { [weak self] in
+            guard let self else { return }
+            let range = NSRange(location: 0, length: input.utf16.count)
+            guard self.speller.rangeOfMisspelledWord(in: input, range: range, startingAt: 0, wrap: false, language: "en_US").location != NSNotFound,
+                  let guess = self.speller.guesses(forWordRange: range, in: input, language: "en_US")?.first,
+                  guess.lowercased() != input.lowercased(), !guess.contains(" "), abs(guess.count - input.count) <= 2 else { return }
+            DispatchQueue.main.async {
+                guard id == self.request, self.candsFor == input, !self.cands.isEmpty,
+                      !self.cands.contains(where: { $0.kind == "english" }) else { return }
+                KeyLog.note("english \(input) -> \(guess)")
+                self.cands.insert(Candidate(text: guess, consume: input.count, kind: "english"), at: 1)
+                self.bar.show(input: input, candidates: self.cands, loading: false)
+            }
         }
     }
 
@@ -482,6 +510,14 @@ final class TouchWatcher: UIGestureRecognizer {
     private func pick(_ i: Int, from list: [Candidate]) {
         let c = list[i]
         KeyLog.note("pick \(i) \(c.text) consume=\(c.consume) buffer=\(buffer)")
+        if c.kind == "english" { // an English spelling guess: typed as it is, nothing to learn or count
+            textDocumentProxy.insertText(c.text)
+            buffer = ""
+            prevWord = nil
+            cands = []; candsFor = nil
+            refresh()
+            return
+        }
         if !gate.mayConvert { // free plan: daily words used up (only when Gate.enabled)
             commitRaw()
             bar.showNotice(Gate.limitMessage)
