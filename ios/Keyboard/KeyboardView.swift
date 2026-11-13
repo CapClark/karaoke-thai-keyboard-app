@@ -131,6 +131,9 @@ extension UIColor {
 }
 
 final class KeyboardView: UIView {
+    /// Extra room under the bottom row on a phone (the keyboard is this much taller, keys the same size).
+    static let phoneLift: CGFloat = 8
+
     var onKey: ((KeyKind) -> Void)?
     var onDeleteRepeat: (() -> Void)?
     /// Globe key: the touch and event go to the system's keyboard switcher.
@@ -252,7 +255,10 @@ final class KeyboardView: UIView {
         guard W > 0, H > 0, !rows.isEmpty else { return }
         let side: CGFloat = W > 500 ? 8 : 5
         let gap: CGFloat = W > 500 ? 10 : 6
-        let top: CGFloat = 6, bottom: CGFloat = 6
+        // On a phone the bottom row sits higher: thumbs reaching for the space bar land a little
+        // low, and below this view is the system's globe and mic strip, which keeps those taps.
+        // The touch area still runs to the bottom edge.
+        let top: CGFloat = 6, bottom: CGFloat = W > 500 ? 6 : 6 + Self.phoneLift // portrait phone
         let rowGap: CGFloat = H > 260 ? 12 : (H > 180 ? 11 : 6)
         let keyH = (H - top - bottom - rowGap * CGFloat(rows.count - 1)) / CGFloat(rows.count)
         let keyW = (W - 2 * side - 9 * gap) / 10
