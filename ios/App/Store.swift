@@ -95,7 +95,7 @@ struct UnlockSection: View {
                     .foregroundStyle(.green)
             } else {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("Free: \(7) days unlimited, then \(50) Thai words a day.")
+                    Text("Free: \(7) days unlimited with Full Access on, then \(50) Thai words a day.")
                     Text("Unlock once for no limit, on all your devices.").foregroundStyle(.secondary)
                 }
                 Button {

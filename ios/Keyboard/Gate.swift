@@ -15,7 +15,9 @@ import StoreKit
 ///
 /// The ways around a limit like this, and what stops each:
 /// - deleting and reinstalling the app for a new trial: the record is also kept in the
-///   Keychain (`GateVault`), which iOS keeps when an app is deleted;
+///   Keychain (`GateVault`), which iOS keeps when an app is deleted. iOS only lets a keyboard
+///   use the Keychain while "Allow Full Access" is on, so without it there is no free trial:
+///   the daily allowance applies from the first day (a reinstall then gains nothing);
 /// - setting the phone's clock back for a new trial or a new day: time never runs backwards
 ///   here (`lastSeen`), so an earlier date gets no new allowance;
 /// - typing a whole message as one long "word": a long conversion counts as several words;
@@ -96,6 +98,19 @@ struct Gate {
         return r
     }
 
+    /// False when a Keychain was asked for but can't be used (Full Access is off): the record
+    /// would not survive a reinstall, so the trial is not offered.
+    private func trialAllowed(_ r: Record) -> Bool {
+        guard let vault else { return true }
+        if vault.read() != nil { return true }
+        save(r) // nothing stored yet, or not reachable: try once and look again
+        return vault.read() != nil
+    }
+
+    private func trial(_ r: Record) -> Bool {
+        trialAllowed(r) && now(r).timeIntervalSince(r.firstUse ?? now(r)) < Double(Self.trialDays) * 86_400
+    }
+
     /// The time the limits go by: the clock, but never earlier than a time already seen.
     private func now(_ r: Record) -> Date { max(clock(), r.lastSeen ?? .distantPast) }
 
@@ -112,8 +127,7 @@ struct Gate {
     }
 
     var inTrial: Bool {
-        let r = current()
-        return now(r).timeIntervalSince(r.firstUse ?? now(r)) < Double(Self.trialDays) * 86_400
+        return trial(current())
     }
 
     var usedToday: Int { current().count }
@@ -122,7 +136,7 @@ struct Gate {
     var remainingToday: Int? {
         if !active || unlocked { return nil }
         let r = current()
-        if now(r).timeIntervalSince(r.firstUse ?? now(r)) < Double(Self.trialDays) * 86_400 { return nil }
+        if trial(r) { return nil }
         return max(0, Self.dailyLimit - r.count)
     }
 
@@ -138,7 +152,7 @@ struct Gate {
         save(r)
     }
 
-    static let limitMessage = "หมดโควตาวันนี้ · Free words used up today.\nUnlock in the Karaoke Thai app. Unlocked? Turn on Full Access."
+    static let limitMessage = "หมดโควตาวันนี้ · Free words used up today.\nUnlock in the Karaoke Thai app. Unlocked or in your free week? Turn on Full Access."
 
     #if canImport(StoreKit)
     /// Looks up the purchase (or an original paid download) and remembers the answer.

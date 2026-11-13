@@ -56,5 +56,20 @@ for _ in 0..<6 { g2.didConvert(letters: 48) }
 check(g2.remainingToday == 0 && !g2.mayConvert, "long conversions use the day up, never below 0")
 
 let g3 = Gate(defaults: fresh("gatetest3"), now: { t2 }, active: true, shared: false, vault: nil)
-check(g3.inTrial && g3.mayConvert, "no Keychain: works from defaults alone")
+check(g3.inTrial && g3.mayConvert, "no Keychain asked for: works from defaults alone")
+
+struct LockedVault: GateVault { // Full Access off: the Keychain refuses
+    func read() -> Data? { nil }
+    func write(_ d: Data) {}
+}
+var d4 = fresh("gatetest4")
+var g4 = Gate(defaults: d4, now: { t2 }, active: true, shared: false, vault: LockedVault())
+check(!g4.inTrial && g4.remainingToday == 50, "Keychain unreachable: no trial, 50 a day from the start")
+for _ in 0..<50 { g4.didConvert() }
+check(!g4.mayConvert, "Keychain unreachable: blocked after 50")
+let v4 = MemoryVault()
+g4 = Gate(defaults: d4, now: { t2 }, active: true, shared: false, vault: v4)
+check(g4.inTrial && g4.mayConvert, "Full Access turned on: the trial applies")
+g4 = Gate(defaults: d4, now: { t2 }, active: true, shared: false, vault: LockedVault())
+check(!g4.mayConvert, "Full Access off again: back to today's count, still used up")
 exit(failed ? 1 : 0)
