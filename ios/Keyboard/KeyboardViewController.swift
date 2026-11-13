@@ -124,6 +124,7 @@ final class KeyboardViewController: UIInputViewController {
         super.viewDidAppear(animated)
         // iOS holds touches near the screen edges back for a moment to check for system
         // swipes, which makes the keys feel late. The keys handle touches themselves.
+        setNeedsUpdateOfScreenEdgesDeferringSystemGestures()
         view.window?.gestureRecognizers?.forEach {
             $0.delaysTouchesBegan = false
             $0.delaysTouchesEnded = false
@@ -323,7 +324,13 @@ final class KeyboardViewController: UIInputViewController {
 
     // MARK: guesses
 
+    // Touches at the bottom screen edge go to the keys first, not to the home swipe.
+    override var preferredScreenEdgesDeferringSystemGestures: UIRectEdge { .all }
+
     private func refresh() {
+        // A tap a little above the top row is a key: up to 14 points into an empty bar, 10 while
+        // it shows guesses (they're tapped near their middle).
+        keys.reachUp = buffer.isEmpty ? 14 : 10
         request += 1
         let id = request
         if buffer.isEmpty {
