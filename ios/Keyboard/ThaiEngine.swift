@@ -596,7 +596,7 @@ final class ThaiEngine {
             let ch = k[i]
             let before: UInt8 = i > 0 ? k[i - 1] : 0, next: UInt8 = i + 1 < k.count ? k[i + 1] : 0
             let inPair = before == I || before == U || before == V // ia, ua, uea
-            if ch == A && !inPair && next != Y { add(i, 1, "x", 1) }
+            if ch == A && !inPair && next != Y { add(i, 1, "x", k.count <= 2 ? 0.3 : 1) } // short words: ka = แค่, ma = แม่
             if ch == E && next != Y { add(i, 1, "x", 1.3) }
             if (ch == E || ch == X) && next == W { add(i, 2, "iaw", 1.5) }
             if ch == E && next == Y { add(i, 2, "qy", 1) }

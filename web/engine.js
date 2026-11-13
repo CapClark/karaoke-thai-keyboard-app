@@ -337,7 +337,7 @@
     for (let i = 0; i < key.length; i++) {
       const ch = key[i], before = key[i - 1], next = key[i + 1];
       const inPair = before === "i" || before === "u" || before === "v"; // ia, ua, uea
-      if (ch === "a" && !inPair && next !== "y") add(i, 1, "x", 1);
+      if (ch === "a" && !inPair && next !== "y") add(i, 1, "x", key.length <= 2 ? 0.3 : 1); // short words: ka = แค่, ma = แม่
       if (ch === "e" && next !== "y") add(i, 1, "x", 1.3);
       if ((ch === "e" || ch === "x") && next === "w") add(i, 2, "iaw", 1.5);
       if (ch === "e" && next === "y") add(i, 2, "qy", 1);
