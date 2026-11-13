@@ -43,7 +43,7 @@ final class KeyboardViewController: UIInputViewController {
         bar.translatesAutoresizingMaskIntoConstraints = false
         keys.translatesAutoresizingMaskIntoConstraints = false
         let barH = bar.heightAnchor.constraint(equalToConstant: 44)
-        let keysH = keys.heightAnchor.constraint(equalToConstant: 216)
+        let keysH = keys.heightAnchor.constraint(equalToConstant: 216 + KeyboardView.phoneLift)
         let top = bar.topAnchor.constraint(equalTo: view.topAnchor)
         top.priority = UILayoutPriority(999) // if iOS insists on more room, it goes above the bar
         NSLayoutConstraint.activate([
@@ -81,7 +81,7 @@ final class KeyboardViewController: UIInputViewController {
         let landscape = w > UIScreen.main.bounds.height && traitCollection.userInterfaceIdiom == .phone
         let pad = traitCollection.userInterfaceIdiom == .pad
         let barH: CGFloat = pad ? 50 : (landscape ? 36 : 44)
-        let keysH: CGFloat = pad ? (w > 900 ? 330 : 270) : (landscape ? 162 : 216)
+        let keysH: CGFloat = pad ? (w > 900 ? 330 : 270) : (landscape ? 162 : 216 + KeyboardView.phoneLift)
         return barH + keysH
     }
 
@@ -225,7 +225,7 @@ final class TouchWatcher: UIGestureRecognizer {
         let landscape = w > UIScreen.main.bounds.height && traitCollection.userInterfaceIdiom == .phone
         let pad = traitCollection.userInterfaceIdiom == .pad
         let barH: CGFloat = pad ? 50 : (landscape ? 36 : 44)
-        let keysH: CGFloat = pad ? (w > 900 ? 330 : 270) : (landscape ? 162 : 216)
+        let keysH: CGFloat = pad ? (w > 900 ? 330 : 270) : (landscape ? 162 : 216 + KeyboardView.phoneLift)
         applyHeight(barH + keysH)
         if barHeight?.constant != barH { barHeight?.constant = barH }
         if keysHeight?.constant != keysH { keysHeight?.constant = keysH }
