@@ -329,6 +329,9 @@
   //   eo, eaw for เอียว   teo = เที่ยว, keaw = เขียว
   //   ey for เอย      ley = เลย
   //   u for อึ อื     ru = หรือ, kun = ขึ้น
+  //   ur for อือ      kurn = ขึ้น, chur = ชื่อ
+  //   e for เออ       den = เดิน, che = เจอ
+  //   ew for อิว      hew = หิว
   // Returns [sound key, cost] for each single change (works on sound keys, not letters).
   function habitVariants(key) {
     const out = [];
@@ -343,6 +346,8 @@
       if (ch === "e" && next === "y") add(i, 2, "qy", 1);
       if (ch === "e" && next === "w" && !inPair) add(i, 1, "i", 1.3); // hew = หิว
       if (ch === "x" && key.length > 2) add(i, 1, "e", 1.5); // prathaet = ประเทศ
+      if (ch === "q" && next !== "y") add(i, 1, "v", 1.3); // ur for อือ: kurn = ขึ้น, chur = ชื่อ
+      if (ch === "e" && next !== "y" && next !== "w") add(i, 1, "q", 1.5); // e for เออ: den = เดิน, che = เจอ
       if (ch === "u" && next !== "a" && next !== "y") add(i, 1, "v", 1.3);
     }
     return out;

@@ -128,6 +128,8 @@ module.exports = [
   ["gang", "แกง"], ["bab", "แบบ"], ["sadang", "แสดง"], ["keow", "เขียว"], ["leow", "แล้ว"], ["ley", "เลย"], ["ngen", "เงิน"],
   ["gangkeowwan", "แกงเขียวหวาน"], ["kuaiteow", "ก๋วยเตี๋ยว"], ["paiteow", "ไปเที่ยว"], ["kinleow", "กินแล้ว"], ["maipang", "ไม่แพง"],
   // "ahn" / "aan" written out: the short ัน first
+  // more habits: ur for อือ, e for เออ, ew for อิว
+  ["kurn", "ขึ้น"], ["mur", "มือ"], ["murtue", "มือถือ"], ["hew", "หิว"], ["prathaet", "ประเทศ"],
   // learner spellings (RTGS / Paiboon style, as other romanized keyboards teach)
   ["yaak", "อยาก"], ["aroy", "อร่อย"], ["laew", "แล้ว"], ["diaw", "เดียว"], ["guaitiao", "ก๋วยเตี๋ยว"], ["yoeramani", "เยอรมนี"],
   ["amerika", "อเมริกา"], ["angkrit", "อังกฤษ"], ["yipun", "ญี่ปุ่น"], ["sabaideemai", "สบายดีไหม"], ["dii", "ดี"],

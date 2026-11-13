@@ -591,7 +591,7 @@ final class ThaiEngine {
             out.append((String(decoding: Array(k[0..<i]) + Array(to.utf8) + Array(k[(i + n)...]), as: UTF8.self), c))
         }
         let A = UInt8(ascii: "a"), E = UInt8(ascii: "e"), X = UInt8(ascii: "x"), U = UInt8(ascii: "u")
-        let W = UInt8(ascii: "w"), Y = UInt8(ascii: "y"), I = UInt8(ascii: "i"), V = UInt8(ascii: "v")
+        let W = UInt8(ascii: "w"), Y = UInt8(ascii: "y"), I = UInt8(ascii: "i"), V = UInt8(ascii: "v"), Q = UInt8(ascii: "q")
         for i in 0..<k.count {
             let ch = k[i]
             let before: UInt8 = i > 0 ? k[i - 1] : 0, next: UInt8 = i + 1 < k.count ? k[i + 1] : 0
@@ -602,6 +602,8 @@ final class ThaiEngine {
             if ch == E && next == Y { add(i, 2, "qy", 1) }
             if ch == E && next == W && !inPair { add(i, 1, "i", 1.3) } // hew = หิว
             if ch == X && k.count > 2 { add(i, 1, "e", 1.5) } // prathaet = ประเทศ
+            if ch == Q && next != Y { add(i, 1, "v", 1.3) } // ur for อือ: kurn = ขึ้น, chur = ชื่อ
+            if ch == E && next != Y && next != W { add(i, 1, "q", 1.5) } // e for เออ: den = เดิน, che = เจอ
             if ch == U && next != A && next != Y { add(i, 1, "v", 1.3) }
         }
         return out
