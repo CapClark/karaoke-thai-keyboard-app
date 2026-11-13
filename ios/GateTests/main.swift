@@ -5,9 +5,9 @@ func check(_ c: Bool, _ m: String) { print(c ? "ok  " : "FAIL", m); if !c { fail
 var failed = false
 let d = UserDefaults(suiteName: "gatetest")!; d.removePersistentDomain(forName: "gatetest")
 var t = Date(timeIntervalSince1970: 1_800_000_000)
-let off = Gate(defaults: d, now: { t }, active: false, shared: false)
+let off = Gate(defaults: d, now: { t }, active: false, shared: false, vault: nil)
 check(off.mayConvert && off.remainingToday == nil, "switched off: no limit")
-let g = Gate(defaults: d, now: { t }, active: true, shared: false)
+let g = Gate(defaults: d, now: { t }, active: true, shared: false, vault: nil)
 check(g.inTrial && g.remainingToday == nil, "first day: trial, no limit")
 t += 8 * 86_400
 check(!g.inTrial && g.remainingToday == 50, "after trial: 50 a day")
@@ -17,4 +17,44 @@ t += 86_400
 check(g.mayConvert && g.remainingToday == 50, "next day: 50 again")
 g.unlocked = true
 check(g.mayConvert && g.remainingToday == nil, "unlocked: no limit")
+
+// Ways around the limit.
+final class MemoryVault: GateVault {
+    var data: Data?
+    func read() -> Data? { data }
+    func write(_ d: Data) { data = d }
+}
+func fresh(_ name: String) -> UserDefaults { let u = UserDefaults(suiteName: name)!; u.removePersistentDomain(forName: name); return u }
+let vault = MemoryVault()
+var t2 = Date(timeIntervalSince1970: 1_800_000_000)
+var d2 = fresh("gatetest2")
+var g2 = Gate(defaults: d2, now: { t2 }, active: true, shared: false, vault: vault)
+check(g2.inTrial, "new install: trial")
+t2 += 8 * 86_400
+check(g2.remainingToday == 50, "trial over")
+for _ in 0..<50 { g2.didConvert() }
+check(!g2.mayConvert, "50 used")
+
+t2 -= 3 * 86_400
+check(!g2.mayConvert && !g2.inTrial, "clock set back 3 days: still blocked, no trial")
+t2 -= 30 * 86_400
+check(!g2.mayConvert && !g2.inTrial, "clock set back before the install: still blocked, no trial")
+t2 += 33 * 86_400
+
+d2 = fresh("gatetest2") // app deleted and installed again: defaults gone, Keychain kept
+g2 = Gate(defaults: d2, now: { t2 }, active: true, shared: false, vault: vault)
+check(!g2.inTrial, "reinstall: no new trial")
+check(!g2.mayConvert, "reinstall the same day: still blocked")
+t2 += 86_400
+check(g2.remainingToday == 50, "next real day: 50 again")
+
+g2.didConvert(letters: 48)
+check(g2.remainingToday == 43, "48 letters in one go count as 7 words")
+g2.didConvert(letters: 5)
+check(g2.remainingToday == 42, "a short word counts as 1")
+for _ in 0..<6 { g2.didConvert(letters: 48) }
+check(g2.remainingToday == 0 && !g2.mayConvert, "long conversions use the day up, never below 0")
+
+let g3 = Gate(defaults: fresh("gatetest3"), now: { t2 }, active: true, shared: false, vault: nil)
+check(g3.inTrial && g3.mayConvert, "no Keychain: works from defaults alone")
 exit(failed ? 1 : 0)

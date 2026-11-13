@@ -120,6 +120,9 @@ final class KeyboardViewController: UIInputViewController {
     override func viewWillAppear(_ animated: Bool) {
         KeyLog.note("LIFE viewWillAppear bounds=\(view.bounds.size)"); KeyLog.flush()
         if Gate.enabled { Task { await gate.refreshUnlocked() } }
+        #if DEBUG
+        if Gate.enabled { KeyLog.note("gate left=\(String(describing: gate.remainingToday)) trial=\(gate.inTrial) keychain=\(KeychainVault().read() != nil)") }
+        #endif
         super.viewWillAppear(animated)
         applyHeight(wantedHeight())
         startFresh()
@@ -484,7 +487,7 @@ final class TouchWatcher: UIGestureRecognizer {
             bar.showNotice(Gate.limitMessage)
             return
         }
-        gate.didConvert()
+        gate.didConvert(letters: min(c.consume, buffer.count))
         let prev = context()
         textDocumentProxy.insertText(c.text)
         Engine.shared.learn(c.text, previous: prev, kind: c.kind)
