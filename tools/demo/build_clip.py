@@ -69,24 +69,31 @@ def stack(name, parts, gap=12):
     return p, out.size
 
 cards = {
-    "intro": stack("intro", [("Type Thai by sound", 92, True), ("พิมพ์ไทยตามเสียง", 58, False, "FFE3D6")], 6),
+    "intro": stack("intro", [("Type Thai by sound", 92, True), ("พิมพ์ไทยตามเสียง", 58, False, "C7C7CC")], 6),
     "head": stack("head", [("Spell it the way it sounds", 74, True)]),
-    "p1": stack("p1", [("sawatdeekrap  →  สวัสดีครับ", 60, True), ("hello", 46, False, "FFE3D6")], 0),
-    "p2": stack("p2", [("kinkhaoyang  →  กินข้าวยัง", 60, True), ("have you eaten?", 46, False, "FFE3D6")], 0),
-    "end": stack("end", [("Karaoke Thai Keyboard", 80, True), ("Free on the App Store", 54, False, "FFE3D6"),
-                         ("iPhone · iPad · Mac", 42, False, "FFD0BC")], 4),
+    "p1": stack("p1", [("sawatdeekrap  →  สวัสดีครับ", 60, True), ("hello", 46, False, "C7C7CC")], 0),
+    "p2": stack("p2", [("kinkhaoyang  →  กินข้าวยัง", 60, True), ("have you eaten?", 46, False, "C7C7CC")], 0),
+    "end": stack("end", [("Karaoke Thai Keyboard", 80, True), ("Free on the App Store", 54, False, "C7C7CC"),
+                         ("iPhone · iPad · Mac", 42, False, "8E8E93")], 4),
 }
 
 # ---- background, phone frame ------------------------------------------------
-bg = Image.new("RGB", (W, H), ORANGE)
+# graphite: a vertical grey gradient with a soft light from above and a darker floor
+top, bottom = (58, 60, 66), (14, 14, 16)
+grad = Image.new("RGB", (1, H))
+for yy in range(H):
+    k = (yy / (H - 1)) ** 1.15
+    grad.putpixel((0, yy), tuple(round(top[c] + (bottom[c] - top[c]) * k) for c in range(3)))
+bg = grad.resize((W, H))
 glow = Image.new("L", (W, H), 0)
-ImageDraw.Draw(glow).ellipse([-300, -500, W + 300, 900], fill=255)
-glow = glow.filter(ImageFilter.GaussianBlur(220))
-bg = Image.composite(Image.new("RGB", (W, H), (246, 120, 62)), bg, glow)
-shade = Image.new("L", (W, H), 0)
-ImageDraw.Draw(shade).rectangle([0, 1300, W, H], fill=255)
-shade = shade.filter(ImageFilter.GaussianBlur(260))
-bg = Image.composite(Image.new("RGB", (W, H), (205, 64, 20)), bg, shade)
+ImageDraw.Draw(glow).ellipse([-200, -650, W + 200, 700], fill=110)
+glow = glow.filter(ImageFilter.GaussianBlur(240))
+bg = Image.composite(Image.new("RGB", (W, H), (120, 122, 130)), bg, glow)
+# a little grain keeps the gradient from banding
+import random as _r
+_r.seed(3)
+noise = Image.effect_noise((W, H), 6).convert("L")
+bg = Image.blend(bg, Image.merge("RGB", (noise, noise, noise)), 0.025)
 bg.save(ASSETS / "bg.png")
 
 # recording crop: message box + candidate bar + keys
@@ -99,7 +106,7 @@ mask = Image.new("L", (PW, PH), 0)
 ImageDraw.Draw(mask).rounded_rectangle([0, 0, PW - 1, PH - 1], R, fill=255)
 mask.save(ASSETS / "mask.png")
 sh = Image.new("RGBA", (PW + 160, PH + 160), (0, 0, 0, 0))
-ImageDraw.Draw(sh).rounded_rectangle([80, 100, PW + 80, PH + 100], R, fill=(90, 25, 5, 120))
+ImageDraw.Draw(sh).rounded_rectangle([80, 100, PW + 80, PH + 100], R, fill=(0, 0, 0, 150))
 sh.filter(ImageFilter.GaussianBlur(36)).save(ASSETS / "shadow.png")
 
 icon = Image.open(REPO / "ios/App/Assets.xcassets/AppIcon.appiconset/icon.png").convert("RGBA").resize((300, 300), Image.LANCZOS)
@@ -107,7 +114,7 @@ im = Image.new("L", (300, 300), 0)
 ImageDraw.Draw(im).rounded_rectangle([0, 0, 299, 299], 68, fill=255)
 icon.putalpha(im)
 ish = Image.new("RGBA", (420, 420), (0, 0, 0, 0))
-ImageDraw.Draw(ish).rounded_rectangle([60, 80, 360, 380], 68, fill=(90, 25, 5, 140))
+ImageDraw.Draw(ish).rounded_rectangle([60, 80, 360, 380], 68, fill=(0, 0, 0, 160))
 ish = ish.filter(ImageFilter.GaussianBlur(26))
 ish.paste(icon, (60, 60), icon)
 ish.save(ASSETS / "icon.png")
