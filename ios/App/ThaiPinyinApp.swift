@@ -1,3 +1,4 @@
+import StoreKit
 import SwiftUI
 import UIKit
 
@@ -23,6 +24,7 @@ struct SetupView: View {
     @State private var done: Set<String> = []
     @StateObject private var store = Store()
     @FocusState private var focused: Bool
+    @Environment(\.requestReview) private var requestReview
 
     static let challenges: [Challenge] = [
         Challenge(typed: "sawatdee", thai: "สวัสดี", meaning: "hello"),
@@ -93,7 +95,7 @@ struct SetupView: View {
                         .textInputAutocapitalization(.never)
                         .onAppear { focused = true } // open the keyboard right away
                         .onChange(of: text) { _ in
-                            if solved { done.insert(challenge.id) }
+                            if solved { done.insert(challenge.id); askForRatingIfDue() }
                         }
                 } header: {
                     Text("Practice")
@@ -138,6 +140,17 @@ struct SetupView: View {
             .navigationTitle("Karaoke Thai")
             .navigationBarTitleDisplayMode(.inline)
         }
+    }
+
+    /// Asks for an App Store rating once per version, right after the third practice phrase
+    /// comes out right (iOS itself shows it at most three times a year).
+    private func askForRatingIfDue() {
+        guard done.count == 3 else { return }
+        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? ""
+        let key = "rating.askedVersion"
+        guard UserDefaults.standard.string(forKey: key) != version else { return }
+        UserDefaults.standard.set(version, forKey: key)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1) { requestReview() }
     }
 
     private func step(_ n: Int, _ s: LocalizedStringKey) -> some View {

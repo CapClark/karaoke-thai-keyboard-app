@@ -8,7 +8,7 @@ const W = path.join(__dirname, "..", "web");
 require(path.join(W, "phonemes.js"));
 require(path.join(W, "dict.mobile.js"));
 require(path.join(W, "extra.js"));
-try { require(path.join(W, "personal.js")); } catch (e) { window.THAI_PERSONAL = []; }
+try { if (process.env.NO_PERSONAL) throw 0; require(path.join(W, "personal.js")); } catch (e) { window.THAI_PERSONAL = []; }
 require(path.join(W, "names.js"));
 require(path.join(W, "engine.js"));
 ThaiIME.load(window.THAI_DICT, window.THAI_EXTRA, window.THAI_PERSONAL || [], window.THAI_NAMES || []);
