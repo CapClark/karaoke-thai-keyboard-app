@@ -1,6 +1,6 @@
 # Karaoke Thai Keyboard
 
-Source for the Karaoke Thai Keyboard: the paid [iPhone/iPad app](https://capclark.github.io/karaoke-thai-keyboard/), the free Mac input method and the web page. Licensed under the [GNU GPL v3](LICENSE): you may use and modify it, and anything you distribute that is built from it must be open source under the same licence. Copyright (c) 2026 Peeranat Sugsavanvit. Data sources are listed in [CREDITS.md](CREDITS.md). The support page and privacy policy are published from the separate repository `CapClark/karaoke-thai-keyboard`, which also hosts the Mac download.
+Source for the Karaoke Thai Keyboard: the [iPhone/iPad app](https://apps.apple.com/app/id6833730979) (free to download, with a one-time unlock; [support page](https://capclark.github.io/karaoke-thai-keyboard/)), the free Mac input method and the web page. Licensed under the [GNU GPL v3](LICENSE): you may use and modify it, and anything you distribute that is built from it must be open source under the same licence. Copyright (c) 2026 Peeranat Sugsavanvit. Data sources are listed in [CREDITS.md](CREDITS.md). The support page and privacy policy are published from the separate repository `CapClark/karaoke-thai-keyboard`, which also hosts the Mac download.
 
 Type Thai by sound, like Chinese pinyin input: `sawatdeekrap` → สวัสดีครับ.
 
@@ -40,7 +40,7 @@ This checks the keyboard's engine against the web engine, then builds it. To put
 3. On the device: Settings → General → Keyboard → Keyboards → Add New Keyboard → **Karaoke Thai**.
 4. In any app, hold 🌐 and pick it.
 
-"Allow Full Access" is optional: iOS requires it for the light tap on each key (haptics). The keyboard never connects to the internet either way; nothing leaves the device.
+"Allow Full Access": iOS requires it for the free week (kept in the Keychain), for the keyboard to see the unlock bought in the app (shared App Group), and for the light tap on each key (haptics). The keyboard never connects to the internet either way; nothing you type leaves the device. Builds made from this source have the free plan on (`Gate.enabled` in `ios/Keyboard/Gate.swift`, `Store.enabled` in `ios/App/Store.swift`); set both to `false` for a build with no limit.
 
 - **Keys:** Space or Return types the first guess, tap any guess, tap the typed letters to keep them as English. When the letters read badly as Thai and misspell an English word, that word is offered as the second guess (`tommorow`: tomorrow; from the system's spell checker, on the device). **EN** switches to plain English typing (**ไทย** switches back).
 - **Physical keyboards:** it works with the on-screen keyboard only. iOS doesn't pass physical-keyboard typing to third-party keyboards.
