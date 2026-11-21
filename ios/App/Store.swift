@@ -6,14 +6,21 @@ import SwiftUI
 /// as in Keyboard/Gate.swift.
 @MainActor
 final class Store: ObservableObject {
-    static let enabled = false
+    static let enabled = true
     static let productID = "com.kenpeeranat.KaraokeThai.unlock"
-    static let firstFreeBuild = "100"
+    static let firstFreeBuild = "8"
 
     @Published private(set) var product: Product?
     @Published private(set) var unlocked = false
     @Published private(set) var busy = false
     @Published var message: String?
+    /// TestFlight, the sandbox or Xcode: never true for App Store downloads.
+    @Published private(set) var isTestBuild = false
+    /// Test builds only: act as if the unlock was never bought (TestFlight purchases are made
+    /// with the tester's real Apple ID and can't be cleared or refunded).
+    @Published var actAsNotBought = SharedState.testIgnorePurchase {
+        didSet { SharedState.testIgnorePurchase = actAsNotBought; Task { await refresh() } }
+    }
 
     private var updates: Task<Void, Never>?
 
@@ -41,11 +48,20 @@ final class Store: ObservableObject {
         for await result in Transaction.currentEntitlements {
             if case .verified(let t) = result, t.productID == Self.productID, t.revocationDate == nil { owned = true }
         }
-        if !owned, case .verified(let app)? = try? await AppTransaction.shared {
-            // Downloaded while the app was paid: everything stays unlocked.
+        let app: AppTransaction?
+        if case .verified(let a)? = try? await AppTransaction.shared { app = a } else { app = nil }
+        // TestFlight and the sandbox have a "sandboxReceipt"; used when AppTransaction can't answer.
+        isTestBuild = app.map { $0.environment != .production }
+            ?? (Bundle.main.appStoreReceiptURL?.lastPathComponent == "sandboxReceipt")
+        // Downloaded while the app was paid: everything stays unlocked. App Store downloads
+        // only: in TestFlight and the sandbox originalAppVersion is always "1.0".
+        if !owned, let app, app.environment == .production {
             owned = app.originalAppVersion.compare(Self.firstFreeBuild, options: .numeric) == .orderedAscending
         }
+        if !isTestBuild && actAsNotBought { actAsNotBought = false } // never in App Store downloads
+        if actAsNotBought { owned = false }
         unlocked = owned
+        SharedState.unlocked = owned // for the keyboard (read while Full Access is on)
     }
 
     func buy() async {
@@ -93,7 +109,7 @@ struct UnlockSection: View {
                     .foregroundStyle(.green)
             } else {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("Free: \(7) days unlimited, then \(50) Thai words a day.")
+                    Text("Free: \(7) days unlimited with Full Access on, then \(50) Thai words a day.")
                     Text("Unlock once for no limit, on all your devices.").foregroundStyle(.secondary)
                 }
                 Button {
@@ -108,6 +124,10 @@ struct UnlockSection: View {
                 .disabled(store.product == nil || store.busy)
                 Button("Restore purchase") { Task { await store.restore() } }
                     .disabled(store.busy)
+            }
+            if store.isTestBuild {
+                Toggle("Act as not bought (test builds only)", isOn: $store.actAsNotBought)
+                    .font(.footnote)
             }
             if let m = store.message {
                 Text(m).font(.footnote).foregroundStyle(.secondary)

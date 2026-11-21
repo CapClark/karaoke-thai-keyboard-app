@@ -122,7 +122,13 @@ final class KeyboardViewController: UIInputViewController {
 
     override func viewWillAppear(_ animated: Bool) {
         KeyLog.note("LIFE viewWillAppear bounds=\(view.bounds.size)"); KeyLog.flush()
-        if Gate.enabled { Task { await gate.refreshUnlocked() } }
+        if Gate.enabled {
+            if hasFullAccess { gate.testIgnorePurchase = SharedState.testIgnorePurchase } // App Group readable
+            Task { await gate.refreshUnlocked() }
+        }
+        #if DEBUG
+        if Gate.enabled { KeyLog.note("gate left=\(String(describing: gate.remainingToday)) trial=\(gate.inTrial) keychain=\(KeychainVault().read() != nil)") }
+        #endif
         super.viewWillAppear(animated)
         applyHeight(wantedHeight())
         startFresh()
@@ -359,7 +365,13 @@ final class TouchWatcher: UIGestureRecognizer {
     private func space() {
         if !buffer.isEmpty {
             let list = currentCandidates()
-            if list.isEmpty { commitRaw(); textDocumentProxy.insertText(" ") } else { pick(0, from: list) }
+            // No guesses, or the free plan's daily words are used up: the letters stay as
+            // English, so the space is typed as well.
+            if list.isEmpty || !gate.mayConvert {
+                commitRaw()
+                textDocumentProxy.insertText(" ")
+                if !list.isEmpty { bar.showNotice(Gate.limitMessage) }
+            } else { pick(0, from: list) }
             return
         }
         textDocumentProxy.insertText(" ")
@@ -516,7 +528,7 @@ final class TouchWatcher: UIGestureRecognizer {
             bar.showNotice(Gate.limitMessage)
             return
         }
-        gate.didConvert()
+        gate.didConvert(letters: min(c.consume, buffer.count))
         let prev = context()
         textDocumentProxy.insertText(c.text)
         Engine.shared.learn(c.text, previous: prev, kind: c.kind)

@@ -122,7 +122,11 @@ struct SetupView: View {
                     step(1, "Open **Settings → General → Keyboard → Keyboards**.")
                     step(2, "Tap **Add New Keyboard…** and choose **Karaoke Thai**.")
                     step(3, "In any app, hold the 🌐 key and pick Karaoke Thai.")
-                    step(4, "For a light tap on each key, tap **Karaoke Thai** there and turn on **Allow Full Access** (iOS requires it for haptics).")
+                    if Store.enabled {
+                        step(4, "Tap **Karaoke Thai** there and turn on **Allow Full Access**: iOS needs it for the free week, for the keyboard to see your unlock, and for a light tap on each key.")
+                    } else {
+                        step(4, "For a light tap on each key, tap **Karaoke Thai** there and turn on **Allow Full Access** (iOS requires it for haptics).")
+                    }
                     Button {
                         if let url = URL(string: UIApplication.openSettingsURLString) { UIApplication.shared.open(url) }
                     } label: {
