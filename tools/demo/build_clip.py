@@ -1,11 +1,13 @@
 """Builds the vertical demo clip from the simulator recording.
 
 Copy this file into a working folder that holds raw.mov (simctl io recordVideo),
-events.txt (the DEMO_EVENT lines from ios/DemoUITests) and sfx/*.wav (tools/demo/make_sfx.py),
-set T0 to the wall clock of the recording's first frame, and run it there.
+events.txt (the DEMO_EVENT lines from ios/DemoUITests) and sfx/*.wav, set T0 to the wall
+clock of the recording's first frame, and run it there. Key clicks (sfx/ios_key1-4.wav,
+sfx/ios_space.wav) are single taps cut from an iPhone typing recording; the other sounds
+come from tools/demo/make_sfx.py (ElevenLabs).
 
 raw.mov + events.txt (tap times) -> out/karaoke-thai-demo.mp4 (1080x1920, 30 fps)
-Sound effects are mixed in when sfx/*.mp3 exist.
+Sound effects are mixed in when sfx/*.wav exist.
 """
 import json
 import subprocess
@@ -22,22 +24,25 @@ ORANGE = (233, 84, 32)
 
 # ---- timing (seconds) -------------------------------------------------------
 T0 = 1795273185.926          # wall clock of raw video t=0 (first key popup at 7.97 s)
-RAW_IN, RAW_OUT = 7.35, 32.45  # part of the recording used
+RAW_IN, RAW_OUT = 7.35, 24.0  # part of the recording used
 SPEED = 1.25                  # typing sped up a little
 PHONE_IN = 2.0                # phone slides up
 CLIP_AT = 2.6                 # recording starts playing here
 def ft(raw_t):                # raw video time -> final time
     return CLIP_AT + (raw_t - RAW_IN) / SPEED
 CLIP_END = ft(RAW_OUT)
-END_AT = CLIP_END             # end card fades in
+HOLD = 1.1                    # last frame held so the final caption can be read
+END_AT = CLIP_END + HOLD      # end card fades in
 TOTAL = END_AT + 3.4
 
 events = []
 for line in open(D / "events.txt"):
     t, kind, *rest = line.split()
-    events.append((ft(float(t) - T0), kind))
+    if RAW_IN <= float(t) - T0 <= RAW_OUT:
+        events.append((ft(float(t) - T0), kind))
 converts = [t for t, k in events if k == "convert"]
-keys = [t for t, k in events if k in ("key", "space")]
+keys = [t for t, k in events if k == "key"]
+spaces = [t for t, k in events if k == "space"]
 
 # ---- text images ------------------------------------------------------------
 BIN = D / "render_text"
@@ -68,7 +73,6 @@ cards = {
     "head": stack("head", [("Spell it the way it sounds", 74, True)]),
     "p1": stack("p1", [("sawatdeekrap  →  สวัสดีครับ", 60, True), ("hello", 46, False, "FFE3D6")], 0),
     "p2": stack("p2", [("kinkhaoyang  →  กินข้าวยัง", 60, True), ("have you eaten?", 46, False, "FFE3D6")], 0),
-    "p3": stack("p3", [("kidthungmak  →  คิดถึงมาก", 60, True), ("miss you so much", 46, False, "FFE3D6")], 0),
     "end": stack("end", [("Karaoke Thai Keyboard", 80, True), ("Free on the App Store", 54, False, "FFE3D6"),
                          ("iPhone · iPad · Mac", 42, False, "FFD0BC")], 4),
 }
@@ -139,7 +143,7 @@ def card_window(n):
 f = []
 f.append("[1:v]split=2[rawA][rawB]")
 f.append(f"[rawA]setpts=(PTS-STARTPTS)/{SPEED},fps=30,crop=1206:{CROP_H}:0:{CROP_Y},"
-         f"scale={PW}:{PH}:flags=lanczos,format=rgba[ph0]")
+         f"scale={PW}:{PH}:flags=lanczos,format=rgba,tpad=stop_mode=clone:stop_duration={HOLD}[ph0]")
 f.append(f"[2:v]format=gray,scale={PW}:{PH},split=2[m][m2]")
 f.append("[ph0][m]alphamerge,setpts=PTS+%f/TB[ph]" % CLIP_AT)
 # first frame of the recording held before it starts playing (the phone slides in with it)
@@ -181,12 +185,14 @@ def sound(path, at, vol):
     k = len(audio_inputs) + len(inputs) // 2  # placeholder, fixed below
     audio_inputs.append((path, at, vol))
 
-if (sfx / "key1.wav").exists():
+if (sfx / "ios_key1.wav").exists():
     import random
     random.seed(7)
-    taps = sorted(keys + converts)
-    for t in taps:
-        sound(sfx / f"key{random.randint(1, 3)}.wav", t, 0.32)
+    # the iPhone's own key click (cut from the user's recording): letters, then space
+    for t in keys:
+        sound(sfx / f"ios_key{random.randint(1, 4)}.wav", t, 1.0)
+    for t in spaces + converts:
+        sound(sfx / "ios_space.wav", t, 1.0)
     for t in converts:
         sound(sfx / "convert.wav", t + 0.03, 0.62)
     sound(sfx / "intro.wav", 0.2, 0.5)
@@ -194,7 +200,7 @@ if (sfx / "key1.wav").exists():
     sound(sfx / "whoosh_out.wav", END_AT - 0.05, 0.3)
     sound(sfx / "end.wav", END_AT + 0.3, 0.6)
     if (sfx / "bed.wav").exists():
-        sound(sfx / "bed.wav", 0.0, 0.2)
+        sound(sfx / "bed.wav", 0.0, 0.13)
 
 n_video_inputs = 5 + len(card_names)
 cmd = ["ffmpeg", "-y", "-v", "error", "-stats"] + inputs
