@@ -14,6 +14,10 @@ final class Store: ObservableObject {
     @Published private(set) var unlocked = false
     @Published private(set) var busy = false
     @Published var message: String?
+    /// The unlock's transaction, for the test-only refund button.
+    @Published private(set) var unlockTransactionID: UInt64?
+    /// TestFlight, the sandbox or Xcode: never true for App Store downloads.
+    @Published private(set) var isTestBuild = false
 
     private var updates: Task<Void, Never>?
 
@@ -38,12 +42,20 @@ final class Store: ObservableObject {
 
     func refresh() async {
         var owned = false
+        var transactionID: UInt64?
         for await result in Transaction.currentEntitlements {
-            if case .verified(let t) = result, t.productID == Self.productID, t.revocationDate == nil { owned = true }
+            if case .verified(let t) = result, t.productID == Self.productID, t.revocationDate == nil {
+                owned = true
+                transactionID = t.id
+            }
         }
+        unlockTransactionID = transactionID
+        let app: AppTransaction?
+        if case .verified(let a)? = try? await AppTransaction.shared { app = a } else { app = nil }
+        isTestBuild = app.map { $0.environment != .production } ?? false
         // Downloaded while the app was paid: everything stays unlocked. App Store downloads
         // only: in TestFlight and the sandbox originalAppVersion is always "1.0".
-        if !owned, case .verified(let app)? = try? await AppTransaction.shared, app.environment == .production {
+        if !owned, let app, app.environment == .production {
             owned = app.originalAppVersion.compare(Self.firstFreeBuild, options: .numeric) == .orderedAscending
         }
         unlocked = owned
@@ -87,12 +99,20 @@ final class Store: ObservableObject {
 /// Shown on the setup screen only while `Store.enabled` is on.
 struct UnlockSection: View {
     @ObservedObject var store: Store
+    @State private var refunding = false
 
     var body: some View {
         Section {
             if store.unlocked {
                 Label("Unlocked: no daily limit. Thank you!", systemImage: "checkmark.seal.fill")
                     .foregroundStyle(.green)
+                // TestFlight purchases can't be cleared, so testers refund to see the free plan again.
+                if store.isTestBuild, let id = store.unlockTransactionID {
+                    Button("Request refund (test builds only)") { refunding = true }
+                        .refundRequestSheet(for: id, isPresented: $refunding) { _ in
+                            Task { await store.refresh() }
+                        }
+                }
             } else {
                 VStack(alignment: .leading, spacing: 6) {
                     Text("Free: \(7) days unlimited with Full Access on, then \(50) Thai words a day.")
