@@ -143,6 +143,10 @@ struct SetupView: View {
             }
             .navigationTitle("Karaoke Thai")
             .navigationBarTitleDisplayMode(.inline)
+            .scrollDismissesKeyboard(.interactively) // drag the page down to close the keyboard
+            .toolbar {
+                if focused { Button("Done") { focused = false } }
+            }
         }
     }
 
