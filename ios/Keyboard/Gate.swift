@@ -152,6 +152,13 @@ struct Gate {
         save(r)
     }
 
+    /// The app's test switch "act as not bought", copied while the keyboard can read the App
+    /// Group (Full Access on) so it still holds after Full Access is turned off.
+    var testIgnorePurchase: Bool {
+        get { defaults.bool(forKey: "gate.test.ignorePurchase") }
+        nonmutating set { defaults.set(newValue, forKey: "gate.test.ignorePurchase") }
+    }
+
     /// Two short lines: the bar is about 330 points wide on the smallest iPhones.
     static let limitMessage = "หมดโควตาวันนี้ · Free words used up today.\nUnlock in the app. Already did? Turn on Full Access."
 
@@ -168,6 +175,7 @@ struct Gate {
     /// Looks up the purchase (or an original paid download) and remembers the answer.
     func refreshUnlocked() async {
         guard Self.enabled else { return }
+        if testIgnorePurchase { apply(owned: false, refunded: true); return }
         var owned = false
         for await result in Transaction.currentEntitlements {
             if case .verified(let t) = result, t.productID == Self.unlockProductID, t.revocationDate == nil { owned = true }

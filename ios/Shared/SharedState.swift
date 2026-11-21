@@ -13,4 +13,12 @@ enum SharedState {
         get { defaults?.bool(forKey: unlockedKey) ?? false }
         set { defaults?.set(newValue, forKey: unlockedKey) }
     }
+
+    /// Test builds only (TestFlight, sandbox, Xcode): act as if the unlock was never bought,
+    /// so a tester whose purchase can't be cleared can still try the free plan.
+    static let testIgnorePurchaseKey = "shared.test.ignorePurchase"
+    static var testIgnorePurchase: Bool {
+        get { defaults?.bool(forKey: testIgnorePurchaseKey) ?? false }
+        set { defaults?.set(newValue, forKey: testIgnorePurchaseKey) }
+    }
 }

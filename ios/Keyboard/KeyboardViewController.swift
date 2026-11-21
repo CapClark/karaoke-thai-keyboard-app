@@ -122,7 +122,10 @@ final class KeyboardViewController: UIInputViewController {
 
     override func viewWillAppear(_ animated: Bool) {
         KeyLog.note("LIFE viewWillAppear bounds=\(view.bounds.size)"); KeyLog.flush()
-        if Gate.enabled { Task { await gate.refreshUnlocked() } }
+        if Gate.enabled {
+            if hasFullAccess { gate.testIgnorePurchase = SharedState.testIgnorePurchase } // App Group readable
+            Task { await gate.refreshUnlocked() }
+        }
         #if DEBUG
         if Gate.enabled { KeyLog.note("gate left=\(String(describing: gate.remainingToday)) trial=\(gate.inTrial) keychain=\(KeychainVault().read() != nil)") }
         #endif

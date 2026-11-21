@@ -14,10 +14,13 @@ final class Store: ObservableObject {
     @Published private(set) var unlocked = false
     @Published private(set) var busy = false
     @Published var message: String?
-    /// The unlock's transaction, for the test-only refund button.
-    @Published private(set) var unlockTransactionID: UInt64?
     /// TestFlight, the sandbox or Xcode: never true for App Store downloads.
     @Published private(set) var isTestBuild = false
+    /// Test builds only: act as if the unlock was never bought (TestFlight purchases are made
+    /// with the tester's real Apple ID and can't be cleared or refunded).
+    @Published var actAsNotBought = SharedState.testIgnorePurchase {
+        didSet { SharedState.testIgnorePurchase = actAsNotBought; Task { await refresh() } }
+    }
 
     private var updates: Task<Void, Never>?
 
@@ -42,22 +45,21 @@ final class Store: ObservableObject {
 
     func refresh() async {
         var owned = false
-        var transactionID: UInt64?
         for await result in Transaction.currentEntitlements {
-            if case .verified(let t) = result, t.productID == Self.productID, t.revocationDate == nil {
-                owned = true
-                transactionID = t.id
-            }
+            if case .verified(let t) = result, t.productID == Self.productID, t.revocationDate == nil { owned = true }
         }
-        unlockTransactionID = transactionID
         let app: AppTransaction?
         if case .verified(let a)? = try? await AppTransaction.shared { app = a } else { app = nil }
-        isTestBuild = app.map { $0.environment != .production } ?? false
+        // TestFlight and the sandbox have a "sandboxReceipt"; used when AppTransaction can't answer.
+        isTestBuild = app.map { $0.environment != .production }
+            ?? (Bundle.main.appStoreReceiptURL?.lastPathComponent == "sandboxReceipt")
         // Downloaded while the app was paid: everything stays unlocked. App Store downloads
         // only: in TestFlight and the sandbox originalAppVersion is always "1.0".
         if !owned, let app, app.environment == .production {
             owned = app.originalAppVersion.compare(Self.firstFreeBuild, options: .numeric) == .orderedAscending
         }
+        if !isTestBuild && actAsNotBought { actAsNotBought = false } // never in App Store downloads
+        if actAsNotBought { owned = false }
         unlocked = owned
         SharedState.unlocked = owned // for the keyboard (read while Full Access is on)
     }
@@ -99,20 +101,12 @@ final class Store: ObservableObject {
 /// Shown on the setup screen only while `Store.enabled` is on.
 struct UnlockSection: View {
     @ObservedObject var store: Store
-    @State private var refunding = false
 
     var body: some View {
         Section {
             if store.unlocked {
                 Label("Unlocked: no daily limit. Thank you!", systemImage: "checkmark.seal.fill")
                     .foregroundStyle(.green)
-                // TestFlight purchases can't be cleared, so testers refund to see the free plan again.
-                if store.isTestBuild, let id = store.unlockTransactionID {
-                    Button("Request refund (test builds only)") { refunding = true }
-                        .refundRequestSheet(for: id, isPresented: $refunding) { _ in
-                            Task { await store.refresh() }
-                        }
-                }
             } else {
                 VStack(alignment: .leading, spacing: 6) {
                     Text("Free: \(7) days unlimited with Full Access on, then \(50) Thai words a day.")
@@ -130,6 +124,10 @@ struct UnlockSection: View {
                 .disabled(store.product == nil || store.busy)
                 Button("Restore purchase") { Task { await store.restore() } }
                     .disabled(store.busy)
+            }
+            if store.isTestBuild {
+                Toggle("Act as not bought (test builds only)", isOn: $store.actAsNotBought)
+                    .font(.footnote)
             }
             if let m = store.message {
                 Text(m).font(.footnote).foregroundStyle(.secondary)
