@@ -51,3 +51,24 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.kenpeeranat.KaraokeThai.Keyboard
         INFOPLIST_FILE: Keyboard/Info.plist
         APPLICATION_EXTENSION_API_ONLY: YES
+  DemoUITests: # types the marketing clip's phrases; not shipped
+    type: bundle.ui-testing
+    platform: iOS
+    sources: [DemoUITests]
+    dependencies:
+      - target: ThaiPinyin
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.kenpeeranat.KaraokeThai.DemoUITests
+        GENERATE_INFOPLIST_FILE: YES
+schemes:
+  ThaiPinyin:
+    build:
+      targets:
+        ThaiPinyin: all
+  Demo:
+    build:
+      targets:
+        DemoUITests: [test]
+    test:
+      targets: [DemoUITests]
