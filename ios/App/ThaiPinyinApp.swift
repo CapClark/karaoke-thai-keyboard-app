@@ -24,6 +24,7 @@ struct SetupView: View {
     @State private var done: Set<String> = []
     @StateObject private var store = Store()
     @FocusState private var focused: Bool
+    @State private var autoFocused = false
     @Environment(\.requestReview) private var requestReview
 
     static let challenges: [Challenge] = [
@@ -93,7 +94,9 @@ struct SetupView: View {
                         .focused($focused)
                         .autocorrectionDisabled()
                         .textInputAutocapitalization(.never)
-                        .onAppear { focused = true } // open the keyboard right away
+                        .onAppear { // open the keyboard right away, once: the list calls this again on every scroll back
+                            if !autoFocused { autoFocused = true; focused = true }
+                        }
                         .onChange(of: text) { _ in
                             if solved { done.insert(challenge.id); askForRatingIfDue() }
                         }
