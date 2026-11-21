@@ -25,6 +25,8 @@ struct SetupView: View {
     @StateObject private var store = Store()
     @FocusState private var focused: Bool
     @State private var autoFocused = false
+    @State private var showUnlock = false
+    @Environment(\.scenePhase) private var scenePhase
     @Environment(\.requestReview) private var requestReview
 
     static let challenges: [Challenge] = [
@@ -151,6 +153,16 @@ struct SetupView: View {
                 if focused { Button("Done") { focused = false } }
             }
         }
+        .sheet(isPresented: $showUnlock) { UnlockSheet(store: store) }
+        .onChange(of: store.checked) { _ in offerUnlockIfDue() }
+        .onChange(of: scenePhase) { phase in
+            if phase == .active { Task { await store.refresh(); offerUnlockIfDue() } }
+        }
+    }
+
+    /// Shows the unlock screen when the free week is over or the keyboard ran out of words.
+    private func offerUnlockIfDue() {
+        if !showUnlock && store.unlockDue() { focused = false; showUnlock = true }
     }
 
     /// Asks for an App Store rating once per version, right after the third practice phrase

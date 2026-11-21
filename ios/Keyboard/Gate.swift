@@ -25,8 +25,8 @@ import StoreKit
 struct Gate {
     static let enabled = true
     static let unlockProductID = "com.kenpeeranat.KaraokeThai.unlock"
-    static let trialDays = 7
-    static let dailyLimit = 50
+    static let trialDays = FreePlan.trialDays
+    static let dailyLimit = FreePlan.wordsPerDay
     /// People who downloaded the app while it was paid keep everything: set this to the first
     /// build number (CFBundleVersion) released as free. On iOS, AppTransaction.originalAppVersion
     /// is the build number of the first download, not the marketing version.

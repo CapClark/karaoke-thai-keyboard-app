@@ -16,6 +16,8 @@ final class Store: ObservableObject {
     @Published var message: String?
     /// TestFlight, the sandbox or Xcode: never true for App Store downloads.
     @Published private(set) var isTestBuild = false
+    /// True once the first purchase check is done: before that `unlocked` is only a guess.
+    @Published private(set) var checked = false
     /// Test builds only: act as if the unlock was never bought (TestFlight purchases are made
     /// with the tester's real Apple ID and can't be cleared or refunded).
     @Published var actAsNotBought = SharedState.testIgnorePurchase {
@@ -62,6 +64,22 @@ final class Store: ObservableObject {
         if actAsNotBought { owned = false }
         unlocked = owned
         SharedState.unlocked = owned // for the keyboard (read while Full Access is on)
+        checked = true
+    }
+
+    /// Should the unlock screen be offered now? Never before the purchase check, never to
+    /// someone who has it; then when the keyboard hit the daily limit since it was last shown,
+    /// or (the keyboard can't always tell the app) once the free week is over, every few days.
+    func unlockDue(now: Date = Date(), defaults: UserDefaults = .standard) -> Bool {
+        guard Self.enabled, checked, !unlocked else { return false }
+        let first = defaults.object(forKey: "app.firstOpen") as? Date ?? now
+        if defaults.object(forKey: "app.firstOpen") == nil { defaults.set(now, forKey: "app.firstOpen") }
+        let shown = defaults.object(forKey: "app.unlockShownAt") as? Date ?? .distantPast
+        let limitHit = (SharedState.limitHitAt ?? .distantPast) > shown
+        let trialOver = now.timeIntervalSince(first) >= Double(FreePlan.trialDays) * 86_400
+        guard limitHit || (trialOver && now.timeIntervalSince(shown) >= 3 * 86_400) else { return false }
+        defaults.set(now, forKey: "app.unlockShownAt")
+        return true
     }
 
     func buy() async {
@@ -109,7 +127,7 @@ struct UnlockSection: View {
                     .foregroundStyle(.green)
             } else {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("Free: \(7) days unlimited with Full Access on, then \(50) Thai words a day.")
+                    Text("Free: \(FreePlan.trialDays) days unlimited with Full Access on, then \(FreePlan.wordsPerDay) Thai words a day.")
                     Text("Unlock once for no limit, on all your devices.").foregroundStyle(.secondary)
                 }
                 Button {
@@ -124,6 +142,7 @@ struct UnlockSection: View {
                 .disabled(store.product == nil || store.busy)
                 Button("Restore purchase") { Task { await store.restore() } }
                     .disabled(store.busy)
+                RedeemCodeButton()
             }
             if store.isTestBuild {
                 Toggle("Act as not bought (test builds only)", isOn: $store.actAsNotBought)
@@ -137,5 +156,91 @@ struct UnlockSection: View {
         } footer: {
             Text("Bought Karaoke Thai before it was free? It's already unlocked.")
         }
+    }
+}
+
+/// Opens Apple's sheet for an offer code (a free unlock). The unlock then arrives through
+/// `Transaction.updates`, which the store is listening to.
+struct RedeemCodeButton: View {
+    @State private var redeeming = false
+
+    var body: some View {
+        Button("Redeem a code") { redeeming = true }
+            .offerCodeRedemption(isPresented: $redeeming) { _ in }
+    }
+}
+
+/// Offered when the free week is over or the day's free words ran out.
+struct UnlockSheet: View {
+    @ObservedObject var store: Store
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 22) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Image(systemName: "infinity.circle.fill")
+                            .font(.system(size: 52))
+                            .foregroundStyle(.tint)
+                        Text("Keep typing Thai, no limit").font(.title.bold())
+                        Text("พิมพ์ไทยได้ไม่จำกัด").font(.title3).foregroundStyle(.secondary)
+                    }
+                    if store.unlocked {
+                        Label("Unlocked. Thank you!", systemImage: "checkmark.seal.fill")
+                            .font(.headline).foregroundStyle(.green)
+                    } else {
+                        Text("The free plan gives \(FreePlan.wordsPerDay) Thai words a day. Unlock once to type as much as you like.")
+                        VStack(alignment: .leading, spacing: 12) {
+                            point("infinity", "Unlimited Thai words, every day")
+                            point("ipad.and.iphone", "On all your iPhones and iPads")
+                            point("checkmark.circle", "Pay once. No subscription")
+                            point("lock.shield", "Still never connects to the internet")
+                        }
+                    }
+                    if let m = store.message {
+                        Text(m).font(.footnote).foregroundStyle(.secondary)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(24)
+            }
+            .safeAreaInset(edge: .bottom) {
+                VStack(spacing: 10) {
+                    if store.unlocked {
+                        Button { dismiss() } label: { Text("Done").frame(maxWidth: .infinity) }
+                            .buttonStyle(.borderedProminent).controlSize(.large)
+                    } else {
+                        Button {
+                            Task { await store.buy() }
+                        } label: {
+                            Group {
+                                if let p = store.product { Text("Unlock for \(p.displayPrice)") } else { ProgressView() }
+                            }
+                            .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.borderedProminent).controlSize(.large)
+                        .disabled(store.product == nil || store.busy)
+                        HStack {
+                            Button("Restore") { Task { await store.restore() } }.disabled(store.busy)
+                            Spacer()
+                            RedeemCodeButton()
+                        }
+                        .font(.subheadline)
+                    }
+                }
+                .padding(.horizontal, 24).padding(.vertical, 12)
+                .background(.bar)
+            }
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    if !store.unlocked { Button("Not now") { dismiss() } }
+                }
+            }
+        }
+    }
+
+    private func point(_ icon: String, _ text: String) -> some View {
+        Label { Text(text) } icon: { Image(systemName: icon).foregroundStyle(.tint).frame(width: 28) }
     }
 }

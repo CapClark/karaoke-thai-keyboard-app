@@ -10,11 +10,11 @@ check(off.mayConvert && off.remainingToday == nil, "switched off: no limit")
 let g = Gate(defaults: d, now: { t }, active: true, shared: false, vault: nil)
 check(g.inTrial && g.remainingToday == nil, "first day: trial, no limit")
 t += 8 * 86_400
-check(!g.inTrial && g.remainingToday == 50, "after trial: 50 a day")
-for _ in 0..<50 { g.didConvert() }
-check(!g.mayConvert && g.remainingToday == 0, "50 used: blocked")
+check(!g.inTrial && g.remainingToday == Gate.dailyLimit, "after trial: \(Gate.dailyLimit) a day")
+for _ in 0..<Gate.dailyLimit { g.didConvert() }
+check(!g.mayConvert && g.remainingToday == 0, "all used: blocked")
 t += 86_400
-check(g.mayConvert && g.remainingToday == 50, "next day: 50 again")
+check(g.mayConvert && g.remainingToday == Gate.dailyLimit, "next day: all again")
 g.unlocked = true
 check(g.mayConvert && g.remainingToday == nil, "unlocked: no limit")
 
@@ -31,9 +31,9 @@ var d2 = fresh("gatetest2")
 var g2 = Gate(defaults: d2, now: { t2 }, active: true, shared: false, vault: vault)
 check(g2.inTrial, "new install: trial")
 t2 += 8 * 86_400
-check(g2.remainingToday == 50, "trial over")
-for _ in 0..<50 { g2.didConvert() }
-check(!g2.mayConvert, "50 used")
+check(g2.remainingToday == Gate.dailyLimit, "trial over")
+for _ in 0..<Gate.dailyLimit { g2.didConvert() }
+check(!g2.mayConvert, "all used")
 
 t2 -= 3 * 86_400
 check(!g2.mayConvert && !g2.inTrial, "clock set back 3 days: still blocked, no trial")
@@ -46,13 +46,13 @@ g2 = Gate(defaults: d2, now: { t2 }, active: true, shared: false, vault: vault)
 check(!g2.inTrial, "reinstall: no new trial")
 check(!g2.mayConvert, "reinstall the same day: still blocked")
 t2 += 86_400
-check(g2.remainingToday == 50, "next real day: 50 again")
+check(g2.remainingToday == Gate.dailyLimit, "next real day: all again")
 
 g2.didConvert(letters: 48)
-check(g2.remainingToday == 45, "48 letters in one go count as 5 words")
+check(g2.remainingToday == Gate.dailyLimit - 5, "48 letters in one go count as 5 words")
 g2.didConvert(letters: 5)
-check(g2.remainingToday == 44, "a short word counts as 1")
-for _ in 0..<9 { g2.didConvert(letters: 48) }
+check(g2.remainingToday == Gate.dailyLimit - 6, "a short word counts as 1")
+for _ in 0..<Gate.dailyLimit { g2.didConvert(letters: 48) }
 check(g2.remainingToday == 0 && !g2.mayConvert, "long conversions use the day up, never below 0")
 
 let g3 = Gate(defaults: fresh("gatetest3"), now: { t2 }, active: true, shared: false, vault: nil)
@@ -64,9 +64,9 @@ struct LockedVault: GateVault { // Full Access off: the Keychain refuses
 }
 var d4 = fresh("gatetest4")
 var g4 = Gate(defaults: d4, now: { t2 }, active: true, shared: false, vault: LockedVault())
-check(!g4.inTrial && g4.remainingToday == 50, "Keychain unreachable: no trial, 50 a day from the start")
-for _ in 0..<50 { g4.didConvert() }
-check(!g4.mayConvert, "Keychain unreachable: blocked after 50")
+check(!g4.inTrial && g4.remainingToday == Gate.dailyLimit, "Keychain unreachable: no trial, daily limit from the start")
+for _ in 0..<Gate.dailyLimit { g4.didConvert() }
+check(!g4.mayConvert, "Keychain unreachable: blocked after the limit")
 let v4 = MemoryVault()
 g4 = Gate(defaults: d4, now: { t2 }, active: true, shared: false, vault: v4)
 check(g4.inTrial && g4.mayConvert, "Full Access turned on: the trial applies")

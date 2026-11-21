@@ -370,7 +370,7 @@ final class TouchWatcher: UIGestureRecognizer {
             if list.isEmpty || !gate.mayConvert {
                 commitRaw()
                 textDocumentProxy.insertText(" ")
-                if !list.isEmpty { bar.showNotice(Gate.limitMessage) }
+                if !list.isEmpty { showLimit() }
             } else { pick(0, from: list) }
             return
         }
@@ -512,6 +512,13 @@ final class TouchWatcher: UIGestureRecognizer {
         pick(i, from: cands)
     }
 
+    /// The free plan's daily words are used up: say so, and tell the app (it offers the unlock
+    /// when next opened; the App Group is only writable with Full Access on).
+    private func showLimit() {
+        bar.showNotice(Gate.limitMessage)
+        if hasFullAccess { SharedState.limitHitAt = Date() }
+    }
+
     private func pick(_ i: Int, from list: [Candidate]) {
         let c = list[i]
         KeyLog.note("pick \(i) \(c.text) consume=\(c.consume) buffer=\(buffer)")
@@ -525,7 +532,7 @@ final class TouchWatcher: UIGestureRecognizer {
         }
         if !gate.mayConvert { // free plan: daily words used up (only when Gate.enabled)
             commitRaw()
-            bar.showNotice(Gate.limitMessage)
+            showLimit()
             return
         }
         gate.didConvert(letters: min(c.consume, buffer.count))
