@@ -62,6 +62,7 @@ final class CandidateBar: UIView {
         hint.font = .systemFont(ofSize: 12)
         hint.adjustsFontSizeToFitWidth = true
         hint.minimumScaleFactor = 0.7
+        hint.lineBreakMode = .byTruncatingTail // a two-line label only shrinks to fit with this
         hint.isHidden = false
         noticeShown = true
     }

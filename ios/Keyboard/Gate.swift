@@ -152,7 +152,17 @@ struct Gate {
         save(r)
     }
 
-    static let limitMessage = "หมดโควตาวันนี้ · Free words used up today.\nUnlock in the Karaoke Thai app. Unlocked or in your free week? Turn on Full Access."
+    /// Two short lines: the bar is about 330 points wide on the smallest iPhones.
+    static let limitMessage = "หมดโควตาวันนี้ · Free words used up today.\nUnlock in the app. Already did? Turn on Full Access."
+
+    /// What the keyboard's own StoreKit check found. Only a refund turns the unlock off:
+    /// when the keyboard simply can't see the purchase, a "no" would hide the app's "yes".
+    func apply(owned: Bool, refunded: Bool) {
+        if owned { unlocked = true; return }
+        guard refunded else { return }
+        unlocked = false
+        if shared { SharedState.unlocked = false } // the app's copy, until the app is opened again
+    }
 
     #if canImport(StoreKit)
     /// Looks up the purchase (or an original paid download) and remembers the answer.
@@ -167,8 +177,11 @@ struct Gate {
         if !owned, case .verified(let app)? = try? await AppTransaction.shared, app.environment == .production {
             owned = app.originalAppVersion.compare(Self.firstFreeBuild, options: .numeric) == .orderedAscending
         }
-        // Only ever set here: if the keyboard can't see StoreKit, a "no" would hide the app's "yes".
-        if owned { unlocked = true }
+        var refunded = false
+        if !owned, case .verified(let t)? = await Transaction.latest(for: Self.unlockProductID) {
+            refunded = t.revocationDate != nil
+        }
+        apply(owned: owned, refunded: refunded)
     }
     #endif
 }
