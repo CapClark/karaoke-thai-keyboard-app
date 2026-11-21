@@ -33,7 +33,7 @@ struct Gate {
     static let firstFreeBuild = "8"
 
     /// Letters of typed sound that count as one word (ceil(letters / this), at least 1).
-    static let lettersPerWord = 7
+    static let lettersPerWord = 10
 
     private let defaults: UserDefaults
     private let clock: () -> Date

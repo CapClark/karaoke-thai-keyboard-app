@@ -49,10 +49,10 @@ t2 += 86_400
 check(g2.remainingToday == 50, "next real day: 50 again")
 
 g2.didConvert(letters: 48)
-check(g2.remainingToday == 43, "48 letters in one go count as 7 words")
+check(g2.remainingToday == 45, "48 letters in one go count as 5 words")
 g2.didConvert(letters: 5)
-check(g2.remainingToday == 42, "a short word counts as 1")
-for _ in 0..<6 { g2.didConvert(letters: 48) }
+check(g2.remainingToday == 44, "a short word counts as 1")
+for _ in 0..<9 { g2.didConvert(letters: 48) }
 check(g2.remainingToday == 0 && !g2.mayConvert, "long conversions use the day up, never below 0")
 
 let g3 = Gate(defaults: fresh("gatetest3"), now: { t2 }, active: true, shared: false, vault: nil)
