@@ -20,6 +20,8 @@ for (const [typed] of require("../tests/sentences.js")) inputs.push([typed, null
 // With a previous word (word pairs, sentence context).
 for (const [prev, typed] of [["กิน", "khao"], ["ผม", "rak"], ["ไป", "nai"], ["ขอบคุณ", "krap"], ["ไม่", "mai"], ["คุณ", "khao"],
   ["เขา", "pai"], ["ทำ", "ngan"], ["นะ", "ka"], ["มาก", "mak"]]) inputs.push([typed, prev]);
+// English spellings of loanwords and names (keyboard, ken), which get their own bonus.
+for (const [, , , en] of window.THAI_NAMES || []) if (en) for (const r of en.split("|")) inputs.push([r, null]);
 // Spellings of the most common words.
 const d = window.THAI_DICT;
 const top = d.w.map((_, i) => i).sort((a, b) => d.f[b] - d.f[a]).slice(0, 1500);

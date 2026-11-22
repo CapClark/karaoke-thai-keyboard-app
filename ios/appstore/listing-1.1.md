@@ -44,7 +44,11 @@ Free to download:
 
 How to turn it on: Settings → General → Keyboard → Keyboards → Add New Keyboard → Karaoke Thai, then tap Karaoke Thai and turn on Allow Full Access. Full Access lets the keyboard keep your free week and see your unlock; what you type still never leaves your device.
 
-**What's New in 1.1.1:**
+**What's New in 1.1.2:**
+• Type English words Thai uses as they're spelled: keyboard gives คีย์บอร์ด, covid gives โควิด
+• Names too: ken gives เคน, sarah gives ซาราห์, plus hundreds of nicknames and K-pop names
+
+**What's New in 1.1.1 (shipped):**
 • A clearer unlock screen, with a place to redeem a code
 • The free plan is now 20 Thai words a day after the free week
 
@@ -82,7 +86,11 @@ Karaoke Thai is now free to download.
 
 วิธีเปิดใช้: การตั้งค่า → ทั่วไป → แป้นพิมพ์ → แป้นพิมพ์ → เพิ่มแป้นพิมพ์ใหม่ → Karaoke Thai แล้วแตะ Karaoke Thai และเปิด "อนุญาตให้เข้าถึงเต็มรูปแบบ" สิ่งที่คุณพิมพ์ยังคงอยู่บนเครื่องเสมอ
 
-**What's New in 1.1.1:**
+**What's New in 1.1.2:**
+• พิมพ์คำทับศัพท์ตามตัวสะกดภาษาอังกฤษได้เลย เช่น keyboard ได้ คีย์บอร์ด, covid ได้ โควิด
+• ชื่อคนก็ได้ เช่น ken ได้ เคน, sarah ได้ ซาราห์ รวมถึงชื่อเล่นและชื่อศิลปินเกาหลีอีกหลายร้อยชื่อ
+
+**What's New in 1.1.1 (shipped):**
 • หน้าปลดล็อกใหม่ พร้อมช่องใส่โค้ด
 • หลังสัปดาห์ฟรี พิมพ์ภาษาไทยได้ฟรีวันละ 20 คำ
 

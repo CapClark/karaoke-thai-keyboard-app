@@ -63,7 +63,7 @@ for (let i = 0; i < out.b.length; i += 3) lines.push(`B\t${out.b[i]}\t${out.b[i 
 for (let i = 0; i < out.t.length; i += 4) lines.push(`T\t${out.t[i]}\t${out.t[i + 1]}\t${out.t[i + 2]}\t${out.t[i + 3]}`);
 for (const [w, r] of window.THAI_EXTRA || []) lines.push(`E\t${w}\t${r}`);
 try { require(path.join(dir, "names.js")); } catch (e) { window.THAI_NAMES = []; }
-for (const [w, rs, f] of window.THAI_NAMES || []) lines.push(`N\t${w}\t${rs}\t${f}`);
+for (const [w, rs, f, en] of window.THAI_NAMES || []) lines.push(`N\t${w}\t${rs}\t${f}\t${en || ""}`);
 for (const [w, c, r] of window.THAI_PERSONAL || []) lines.push(`M\t${w}\t${c}\t${r || ""}`);
 if (lines.some((l) => l.includes("\n"))) throw new Error("newline inside an entry");
 fs.writeFileSync(path.join(dir, "dict.mobile.txt"), lines.join("\n") + "\n");

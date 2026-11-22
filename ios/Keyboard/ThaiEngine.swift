@@ -211,6 +211,10 @@ final class ThaiEngine {
     private var words: [String] = []
     private var freq: [Double] = []
     private var spell: [String] = [] // all spellings of a word, joined with "|"
+    // English spelling of a loanword or name -> (word id, bonus). A spelling that is no Thai word's
+    // own ("josh", marked "!" in names.js) can only mean that word: bigger bonus.
+    private var english: [String: [(Int, Double)]] = [:]
+    static let ENGLISH_BONUS = 4.0, ENGLISH_ONLY_BONUS = 12.0, ENGLISH_MAX = 3000.0
     private var byKey: [String: [Int32]] = [:] // sound key -> word ids, most likely first
     private var wordId: [Exact: Int32] = [:] // exact text: Swift would treat differently-ordered tone marks as equal
     private var phraseIds = Set<Int32>() // multi-word phrases
@@ -248,7 +252,7 @@ final class ThaiEngine {
     /// Reads web/dict.mobile.txt (tools/mobile_dict.js): one entry per line, tab-separated.
     ///   W word spellings count keys   P phrase spelling count lastword key
     ///   B a b count   T a b c count   E word spelling (web/extra.js)
-    ///   N name spellings rank (web/names.js)   M word count spelling (web/personal.js)
+    ///   N name spellings rank english (web/names.js)   M word count spelling (web/personal.js)
     func load(contentsOf url: URL, learned: Data? = nil) throws {
         let data = try Data(contentsOf: url, options: .mappedIfSafe)
         if let learned, let obj = (try? JSONSerialization.jsonObject(with: learned)) as? [String: Any] {
@@ -257,7 +261,7 @@ final class ThaiEngine {
         }
         var extra: [(String, String)] = []
         var mine: [(String, Double, String)] = []
-        var named: [(String, String, Double)] = []
+        var named: [(String, String, Double, String)] = []
         var bi: [(UInt64, UInt32)] = [], tri: [(UInt64, UInt32)] = []
         data.withUnsafeBytes { (raw: UnsafeRawBufferPointer) in
             let p = raw.bindMemory(to: UInt8.self)
@@ -298,7 +302,7 @@ final class ThaiEngine {
                         if let lid = wordId[Exact(at(3))] { phraseLast[id] = lid }
                     }
                 case UInt8(ascii: "E"): extra.append((at(0), at(1)))
-                case UInt8(ascii: "N"): named.append((at(0), at(1), Double(at(2)) ?? 100))
+                case UInt8(ascii: "N"): named.append((at(0), at(1), Double(at(2)) ?? 100, at(3)))
                 case UInt8(ascii: "M"): mine.append((at(0), Double(at(1)) ?? 0, at(2)))
                 default: break
                 }
@@ -314,9 +318,21 @@ final class ThaiEngine {
             addWord(w, [r], id == nil ? 2000 : max(freq[Int(id!)], 2000), nil)
         }
         // Proper nouns: an existing word keeps its rank and gains the spellings.
-        for (w, rs, f) in named {
+        for (w, rs, f, en) in named {
             let id = wordId[Exact(w)]
+            // Everyday words (กัน, also a nickname "gun") keep their own spellings: a new one would
+            // give them sounds they don't have (กัน for "koon").
+            if let id, freq[Int(id)] >= Self.ENGLISH_MAX { continue }
+            let had = id == nil ? "" : "|" + spell[Int(id!)] + "|" // "kao" is already how เก้า reads: no bonus
             addWord(w, rs.split(separator: "|", omittingEmptySubsequences: false).map(String.init), id == nil ? f : freq[Int(id!)], nil)
+            // Its English spellings (keyboard, ken): typed letter for letter, they beat words that only share the sounds.
+            if !en.isEmpty, let nid = wordId[Exact(w)].map(Int.init) {
+                for e in en.split(separator: "|") {
+                    let only = e.hasPrefix("!"), r = String(only ? e.dropFirst() : e)
+                    if had.contains("|" + r + "|") || (english[r] ?? []).contains(where: { $0.0 == nid }) { continue }
+                    english[r, default: []].append((nid, only ? Self.ENGLISH_ONLY_BONUS : Self.ENGLISH_BONUS))
+                }
+            }
         }
         // Your own words (names, slang) that the word list lacks.
         for (w, _, r) in mine where !r.isEmpty && wordId[Exact(w)] == nil { addWord(w, [r], 500, nil) }
@@ -897,10 +913,12 @@ final class ThaiEngine {
         }
         let hMarked = Self.hMarked(raw), shortA = Self.shortA(raw)
         let rawSpelled = "|" + rawS + "|"
+        let englishIds = english[rawS]
         func put(_ id: Int, _ extra: Double, _ tier: Int = 0) {
             var c = wcost(prev, id, nil) + extra
             if hasFull(id, t.full) { c -= t.full != t.key ? 2.5 : 0.8 } // typed the cluster: krap -> ครับ
-            if ("|" + spell[id] + "|").contains(rawSpelled) { c -= 2 } // one of its known spellings, letter for letter
+            if let e = englishIds?.first(where: { $0.0 == id }) { c -= e.1 } // its English spelling, letter for letter
+            else if ("|" + spell[id] + "|").contains(rawSpelled) { c -= 2 } // one of its known spellings, letter for letter
             let w = words[id]
             if hMarked && Self.startsWithHo(w) { c -= 8 }
             if shortA && Self.shortAWord(w) { c -= Self.SHORT_A_BONUS }

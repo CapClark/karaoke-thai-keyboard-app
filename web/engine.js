@@ -19,6 +19,11 @@
   const romans = []; // first romanization (for display)
   const byKey = new Map(); // key -> [word ids], best first
   const wordId = new Map(); // Thai text -> id
+  // English spellings of loanwords and names (keyboard -> คีย์บอร์ด, ken -> เคน): typed letter for
+  // letter, they beat the Thai words that only share the sounds. spelling -> [[word id, bonus]]
+  // A spelling that is no Thai word's own ("josh", marked "!" in names.js) can only mean that word.
+  const english = new Map();
+  const ENGLISH_BONUS = 4, ENGLISH_ONLY_BONUS = 12, ENGLISH_MAX = 3000;
   let TOTAL = 1;
   // Word pairs / triples as sorted number arrays (binary search): far smaller than Maps.
   const B = 131072; // 2^17 > number of corpus words, so a*B+b and (a*B+b)*B+c fit in a double exactly
@@ -158,9 +163,19 @@
     }
     // Proper nouns (web/names.js): a name that's already a word keeps its rank and only
     // gains the spellings; a new one comes in at the modest rank given.
-    for (const [w, rs, f] of names) {
+    for (const [w, rs, f, en] of names) {
       const id = wordId.get(w);
+      // Everyday words (กัน, also a nickname "gun") keep their own spellings: a new one would
+      // give them sounds they don't have (กัน for "koon").
+      if (id !== undefined && freq[id] >= ENGLISH_MAX) continue;
+      const had = id === undefined ? "" : "|" + spell[id] + "|"; // "kao" is already how เก้า reads: no bonus
       addWord(w, rs.split("|"), id === undefined ? f : freq[id]);
+      if (en) for (const e of en.split("|")) {
+        const only = e[0] === "!", r = only ? e.slice(1) : e;
+        if (had.includes("|" + r + "|")) continue;
+        const nid = wordId.get(w), list = english.get(r), bonus = only ? ENGLISH_ONLY_BONUS : ENGLISH_BONUS;
+        if (!list) english.set(r, [[nid, bonus]]); else if (!list.some((x) => x[0] === nid)) list.push([nid, bonus]);
+      }
     }
     // Your own words (names, slang) that the word list lacks.
     for (const [w, , r] of mine) if (r && !wordId.has(w)) addWord(w, [r], 500);
@@ -551,10 +566,13 @@
     const tierFor = (k, prefix) => (prefix ? consonants(k).startsWith(typedC) : consonants(k) === typedC) ? 1 : 2;
     const tierOf = new Map();
     const hMarked = /^(mh|nh|lh|rh|wh|yh|ngh)/.test(raw), shortA = SHORT_A.test(raw);
+    const englishIds = english.get(raw);
     const put = (id, extra, tier = 0) => {
       let c = wcost(prev, id) + extra;
       if (hasFull(id, t.full)) c -= t.full !== t.key ? 2.5 : 0.8; // typed the cluster: krap -> ครับ
-      if (("|" + spell[id] + "|").includes("|" + raw + "|")) c -= 2; // typed one of its known spellings letter for letter
+      const en = englishIds && englishIds.find((x) => x[0] === id);
+      if (en) c -= en[1]; // its English spelling, letter for letter
+      else if (("|" + spell[id] + "|").includes("|" + raw + "|")) c -= 2; // typed one of its known spellings letter for letter
       const w = words[id];
       if (hMarked && startsWithHo(w)) c -= 8; // "mhai": the typed h means a word written with ห (ไหม)
       if (shortA && SHORT_A_WORD.test(w)) c -= SHORT_A_BONUS;
