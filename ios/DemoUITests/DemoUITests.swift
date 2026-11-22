@@ -64,6 +64,9 @@ final class DemoUITests: XCTestCase {
             for _ in 0..<40 { tap(Self.delete, "delete") }
             return
         }
+        // DEMO_CLEAR_FIRST=1: empty the box, then type, in one run (Messages brings back a
+        // deleted draft when it's opened again, so a separate DEMO_CLEAR run doesn't stick).
+        if env["DEMO_CLEAR_FIRST"] == "1" { for _ in 0..<45 { tap(Self.delete, "delete") }; pause(2) }
         pause(1)
         for (n, phrase) in phrases.enumerated() {
             // A space between phrases (DEMO_NO_GAP=1 leaves it out: a second space right after
