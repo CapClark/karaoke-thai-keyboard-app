@@ -9,8 +9,8 @@ settings:
     DEVELOPMENT_TEAM: V4YMT449CL
     CODE_SIGN_STYLE: Automatic
     SWIFT_VERSION: "5.0"
-    MARKETING_VERSION: "1.1.3"
-    CURRENT_PROJECT_VERSION: "15"
+    MARKETING_VERSION: "1.1.4"
+    CURRENT_PROJECT_VERSION: "16"
     TARGETED_DEVICE_FAMILY: "1,2"
 targets:
   ThaiPinyin:
@@ -29,6 +29,7 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.kenpeeranat.KaraokeThai
         INFOPLIST_FILE: App/Info.plist
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
     dependencies:
       - target: ThaiPinyinKeyboard
         embed: true

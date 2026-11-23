@@ -83,4 +83,27 @@ final class DemoUITests: XCTestCase {
             try XCUIScreen.main.screenshot().pngRepresentation.write(to: URL(fileURLWithPath: path))
         }
     }
+    /// Audit screenshots: SHOT_DIR and SHOT_PREFIX. Shows the app's page from the top, closing
+    /// the keyboard first, then scrolls down a screen at a time (SHOT_PAGES, default 6).
+    func testPageShots() throws {
+        let env = ProcessInfo.processInfo.environment
+        guard let dir = env["SHOT_DIR"] else { return }
+        let prefix = env["SHOT_PREFIX"] ?? "page"
+        let app = XCUIApplication(bundleIdentifier: "com.kenpeeranat.KaraokeThai")
+        app.activate()
+        pause(1.5)
+        let shot = { (name: String) in
+            try? XCUIScreen.main.screenshot().pngRepresentation.write(to: URL(fileURLWithPath: "\(dir)/\(prefix)_\(name).png"))
+        }
+        if env["SHOT_KEEP_KEYBOARD"] == "1" { shot("keyboard"); return }
+        if app.buttons["Done"].exists { app.buttons["Done"].tap(); pause(1) }
+        if app.buttons["Not now"].exists { shot("sheet"); app.buttons["Not now"].tap(); pause(1) }
+        for n in 1...(Int(env["SHOT_PAGES"] ?? "6") ?? 6) {
+            shot(String(n))
+            app.swipeUp(velocity: .slow)
+            pause(1)
+            if app.buttons["Done"].exists { app.buttons["Done"].tap(); pause(1) } // a swipe can land on the text box
+        }
+    }
 }
+

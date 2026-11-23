@@ -132,6 +132,14 @@ struct Gate {
 
     var usedToday: Int { current().count }
 
+    /// When the free week ends, or nil when there is none (unlocked, used up, or not allowed).
+    var trialEnds: Date? {
+        if !active || unlocked { return nil }
+        let r = current()
+        guard trial(r), let f = r.firstUse else { return nil }
+        return f.addingTimeInterval(Double(Self.trialDays) * 86_400)
+    }
+
     /// Words left today, or nil when there is no limit.
     var remainingToday: Int? {
         if !active || unlocked { return nil }

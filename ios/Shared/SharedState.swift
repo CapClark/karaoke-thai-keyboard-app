@@ -37,6 +37,36 @@ enum SharedState {
     }
 }
 
+/// What the keyboard last saw of the free plan, so the app can show it (the app can't read
+/// the keyboard's own storage). Written only while Full Access is on: no report at all tells
+/// the app that Full Access is off or the keyboard hasn't been used yet.
+enum KeyboardReport {
+    static let seenKey = "shared.kb.seenAt"
+    static let trialEndsKey = "shared.kb.trialEnds"
+    static let wordsLeftKey = "shared.kb.wordsLeft" // -1: no daily limit right now
+    static let dayKey = "shared.kb.day"
+
+    static func write(trialEnds: Date?, wordsLeft: Int?, now: Date = Date(), in d: UserDefaults? = SharedState.defaults) {
+        guard let d else { return }
+        d.set(now, forKey: seenKey)
+        d.set(trialEnds, forKey: trialEndsKey)
+        d.set(wordsLeft ?? -1, forKey: wordsLeftKey)
+        d.set(Usage.dayKey(now), forKey: dayKey)
+    }
+
+    static func seenAt(in d: UserDefaults? = SharedState.defaults) -> Date? { d?.object(forKey: seenKey) as? Date }
+    static func trialEnds(in d: UserDefaults? = SharedState.defaults) -> Date? { d?.object(forKey: trialEndsKey) as? Date }
+
+    /// Free words left today: the last count if it was written today, a full allowance on a
+    /// new day, nil when there was no limit (free week or unlocked).
+    static func wordsLeft(now: Date = Date(), in d: UserDefaults? = SharedState.defaults) -> Int? {
+        guard let d, d.object(forKey: wordsLeftKey) != nil else { return nil }
+        let left = d.integer(forKey: wordsLeftKey)
+        if left < 0 { return nil }
+        return d.string(forKey: dayKey) == Usage.dayKey(now) ? left : FreePlan.wordsPerDay
+    }
+}
+
 /// How much the keyboard has really been used, so the app asks for a rating only after
 /// that. Written by the keyboard on each Thai word it types, which needs Full Access (iOS
 /// blocks the App Group otherwise); read by the app.

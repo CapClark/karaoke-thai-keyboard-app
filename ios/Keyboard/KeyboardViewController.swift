@@ -43,8 +43,8 @@ final class KeyboardViewController: UIInputViewController {
             ChatStyle.enabled.toggle()
             self.bar.chatOn = ChatStyle.enabled
             self.cands = []; self.candsFor = nil // guesses made in the other style
-            self.bar.showNotice(ChatStyle.enabled ? "Chat style on: krap → คับ, jing → จิง\nสะกดแบบแชท · tap again for ครับ"
-                                                  : "Chat style off: krap → ครับ\nสะกดแบบปกติ")
+            self.bar.showNotice(ChatStyle.enabled ? "Chat spelling on · krap → คับ · สะกดแบบแชท"
+                                                  : "Chat spelling off · krap → ครับ · สะกดแบบปกติ")
         }
         keys.onKey = { [weak self] k in self?.press(k) }
         keys.onDeleteRepeat = { [weak self] in self?.deleteBackward() }
@@ -130,6 +130,12 @@ final class KeyboardViewController: UIInputViewController {
 
     private let gate = Gate()
 
+    /// Tells the app the free week's end and today's words left (App Group: Full Access only).
+    private func reportPlan() {
+        guard Gate.enabled, hasFullAccess else { return }
+        KeyboardReport.write(trialEnds: gate.trialEnds, wordsLeft: gate.remainingToday)
+    }
+
     override func viewWillAppear(_ animated: Bool) {
         KeyLog.note("LIFE viewWillAppear bounds=\(view.bounds.size)"); KeyLog.flush()
         if Gate.enabled {
@@ -137,6 +143,7 @@ final class KeyboardViewController: UIInputViewController {
             Task { await gate.refreshUnlocked() }
         }
         #if DEBUG
+        reportPlan()
         if Gate.enabled { KeyLog.note("gate left=\(String(describing: gate.remainingToday)) trial=\(gate.inTrial) keychain=\(KeychainVault().read() != nil)") }
         #endif
         super.viewWillAppear(animated)
@@ -549,6 +556,7 @@ final class TouchWatcher: UIGestureRecognizer {
         }
         gate.didConvert(letters: min(c.consume, buffer.count))
         if hasFullAccess { Usage.noteWord() } // for the app's rating request (App Group needs Full Access)
+        reportPlan()
         let prev = context()
         textDocumentProxy.insertText(c.text)
         Engine.shared.learn(c.base ?? c.text, previous: prev, kind: c.kind)

@@ -99,4 +99,23 @@ check(RatingAsk.isDue(words: 30, keyboardDays: 3, appDays: 1, lastAsked: n - 61 
 check(!RatingAsk.isDue(words: 30, keyboardDays: 3, appDays: 1, lastAsked: nil, limitHitAt: n - 3_600, now: n), "rating: limit hit an hour ago, waits")
 check(!RatingAsk.isDue(words: 0, keyboardDays: 0, appDays: 3, lastAsked: nil, limitHitAt: nil, now: n), "rating: no Full Access, 3 app days, waits")
 check(RatingAsk.isDue(words: 0, keyboardDays: 0, appDays: 4, lastAsked: nil, limitHitAt: nil, now: n), "rating: no Full Access, 4 app days, asks")
+// The free week's end, as reported to the app.
+let td = UserDefaults(suiteName: "gatetest.trial")!; td.removePersistentDomain(forName: "gatetest.trial")
+var tt = Date(timeIntervalSince1970: 1_800_000_000)
+let tg = Gate(defaults: td, now: { tt }, active: true, shared: false, vault: nil)
+let ends = tg.trialEnds
+check(ends == tt.addingTimeInterval(7 * 86_400), "trialEnds: 7 days after first use")
+tt += 8 * 86_400
+check(tg.trialEnds == nil, "trialEnds: nil once the week is over")
+check(Gate(defaults: td, now: { tt }, active: false, shared: false, vault: nil).trialEnds == nil, "trialEnds: nil when switched off")
+
+// The keyboard's report: words left carry over only on the same day.
+let rd = UserDefaults(suiteName: "gatetest.report")!; rd.removePersistentDomain(forName: "gatetest.report")
+check(KeyboardReport.wordsLeft(now: n, in: rd) == nil && KeyboardReport.seenAt(in: rd) == nil, "report: nothing before the keyboard reports")
+KeyboardReport.write(trialEnds: nil, wordsLeft: 12, now: n, in: rd)
+check(KeyboardReport.seenAt(in: rd) == n, "report: seen time kept")
+check(KeyboardReport.wordsLeft(now: n, in: rd) == 12, "report: same day, 12 left")
+check(KeyboardReport.wordsLeft(now: n + 86_400, in: rd) == FreePlan.wordsPerDay, "report: next day, full allowance")
+KeyboardReport.write(trialEnds: n + 86_400, wordsLeft: nil, now: n, in: rd)
+check(KeyboardReport.wordsLeft(now: n, in: rd) == nil && KeyboardReport.trialEnds(in: rd) == n + 86_400, "report: free week, no daily count")
 exit(failed ? 1 : 0)
