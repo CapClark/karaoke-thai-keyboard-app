@@ -141,3 +141,30 @@ Karaoke Thai is now free to download with a one-time, non-consumable in-app purc
 
 Promo codes for the app no longer give the unlock. Use offer codes on the in-app purchase
 instead (Features → In-App Purchases → Unlock → Offer Codes), once the purchase is approved.
+
+## 1.1.3 (build 15), submitted 2026-11-23
+
+1.1.2 (build 14) was pulled from review before it was looked at; its version record was
+renamed 1.1.3, so 1.1.3 carries the 1.1.2 changes too. Automatic release.
+
+**What's New, English (all four English listings):**
+• Chat style: tap คับ on the keyboard to type the way people text. krap gives คับ, jing gives จิง, and the standard spelling is always the next guess
+• Stretch it: krappp gives ครับบบ, makkk gives มากกก
+• English words Thai uses, as they're spelled: keyboard gives คีย์บอร์ด, covid gives โควิด
+• Names too: ken gives เคน, sarah gives ซาราห์, plus hundreds of nicknames
+
+**What's New, Thai:**
+• โหมดสะกดแบบแชท: แตะปุ่ม คับ บนแป้นพิมพ์ แล้วพิมพ์ krap ได้ คับ, jing ได้ จิง ตัวสะกดปกติยังอยู่เป็นตัวเลือกถัดไปเสมอ
+• ลากเสียงได้: krappp ได้ ครับบบ, makkk ได้ มากกก
+• พิมพ์คำทับศัพท์ตามตัวสะกดภาษาอังกฤษได้เลย เช่น keyboard ได้ คีย์บอร์ด, covid ได้ โควิด
+• ชื่อคนก็ได้ เช่น ken ได้ เคน, sarah ได้ ซาราห์ รวมถึงชื่อเล่นอีกหลายร้อยชื่อ
+
+**Keywords (changed in 1.1.3):**
+- English (U.S.): `phonetic,romanized,transliteration,typing,input,predictive,qwerty,keypad,offline,smart,พิมพ์ไทย`
+- English (U.K.), new: `phonetic,romanized,romanised,transliteration,typing,input,predictive,qwerty,keypad,offline,smart`
+- English (Australia), new: `romanization,romanisation,phonetics,autocorrect,thailand,spell,sound,converter,sentence,script`
+- English (Canada), new: `phonetic,romanized,transliteration,typing,input,predictive,qwerty,keypad,offline,smart,thailand`
+- Thai: `แป้นพิมพ์ภาษาไทย,คีย์บอร์ด,คาราโอเกะ,ภาษาไทย,ทับศัพท์,คำอ่าน,โรมัน,typing,phonetic,romanized`
+
+The three new English listings copy the U.S. name, subtitle, description, promotional text
+and screenshots. Re-run the search scans 14 days after 1.1.3 goes live.
