@@ -24,3 +24,7 @@ marketing/promo-posts.md
 marketing/creators.md
 marketing/outreach.md
 docs/audits/
+marketing/status_check.py
+marketing/status-state.json
+marketing/status-log.md
+marketing/status-browser.json

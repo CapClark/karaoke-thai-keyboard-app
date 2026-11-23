@@ -493,7 +493,9 @@ final class TouchWatcher: UIGestureRecognizer {
                 guard id == self.request, self.candsFor == input, !self.cands.isEmpty,
                       !self.cands.contains(where: { $0.kind == "english" }) else { return }
                 KeyLog.note("english \(input) -> \(guess)")
-                self.cands.insert(Candidate(text: guess, consume: input.count, kind: "english"), at: 1)
+                // Second place, but after a chat spelling and the standard spelling it stands for.
+                let at = min((self.cands.firstIndex(where: { $0.base == nil }) ?? 0) + 1, self.cands.count)
+                self.cands.insert(Candidate(text: guess, consume: input.count, kind: "english"), at: at)
                 self.bar.show(input: input, candidates: self.cands, loading: false)
             }
         }
