@@ -7,6 +7,9 @@ struct Candidate {
     var kind: String = "word"
     var isCorrection = false // doesn't match every typed sound exactly
     var cost = 0.0 // the engine's cost: about 2 or less per letter for Thai that reads well
+    /// The standard spelling, when `text` is a chat spelling or a stretched ending of it
+    /// (ChatStyle). The engine learns and reads context from this, never from `text`.
+    var base: String? = nil
 }
 
 /// Runs the matching engine (ThaiEngine, the Swift port of web/engine.js) on its own queue,
@@ -80,10 +83,34 @@ final class Engine {
 
     private func lookup(_ input: String, previous: String?) -> [Candidate] {
         guard ready, !input.isEmpty else { return [] }
-        return engine.candidates(input, limit: 36, previous: previous).compactMap { r in
+        let list: [Candidate] = engine.candidates(input, limit: 36, previous: previous).compactMap { r in
             guard r.consume >= 1, r.consume <= input.count, !r.text.isEmpty else { return nil }
             return Candidate(text: r.text, consume: r.consume, kind: r.kind, isCorrection: r.tier > 0, cost: r.cost)
         }
+        return Engine.restyle(list, input: input, chat: ChatStyle.enabled)
+    }
+
+    /// Chat spellings and stretched endings on top of the engine's guesses (ChatStyle). Each
+    /// rewritten guess goes just before the standard one, which stays in the list.
+    static func restyle(_ list: [Candidate], input: String, chat: Bool) -> [Candidate] {
+        let extra = ChatStyle.stretch(input)
+        guard chat || extra != nil else { return list }
+        var out: [Candidate] = [], seen = Set<String>()
+        func add(_ c: Candidate, as text: String) {
+            guard seen.insert(text).inserted else { return }
+            out.append(text == c.text ? c : Candidate(text: text, consume: c.consume, kind: c.kind, isCorrection: c.isCorrection,
+                                                      cost: c.cost, base: c.text))
+        }
+        // "krappp": the best reading of the whole input, with its last letter repeated.
+        if let extra, let top = list.first(where: { $0.consume == input.count }),
+           let long = ChatStyle.stretched(chat ? ChatStyle.slang(top.text) : top.text, by: extra) {
+            add(top, as: long)
+        }
+        for c in list {
+            if chat { add(c, as: ChatStyle.slang(c.text)) }
+            add(c, as: c.text)
+        }
+        return out
     }
 
     /// Picked words rank higher next time; saved a moment later, not on every pick.

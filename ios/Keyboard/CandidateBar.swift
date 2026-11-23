@@ -7,6 +7,10 @@ final class CandidateBar: UIView {
     var onKeepLetters: (() -> Void)?
     var onTouch: (() -> Void)?
     var onPalette: (() -> Void)?
+    var onChat: (() -> Void)?
+    /// Chat spellings are on (ChatStyle): the switch is drawn filled.
+    var chatOn = false { didSet { render() } }
+    private let chatButton = UIButton(type: .custom)
     var theme = Theme(dark: false) { didSet { if theme.dark != oldValue.dark || theme.palette != oldValue.palette { rebuildItems() }; render() } }
     private let paletteButton = UIButton(type: .system)
 
@@ -49,6 +53,13 @@ final class CandidateBar: UIView {
         paletteButton.accessibilityLabel = "Keyboard colours"
         paletteButton.addTarget(self, action: #selector(palette), for: .touchUpInside)
         addSubview(paletteButton)
+        chatButton.setTitle("คับ", for: .normal)
+        chatButton.titleLabel?.font = .systemFont(ofSize: 13, weight: .semibold)
+        chatButton.layer.cornerRadius = 11
+        chatButton.layer.borderWidth = 1
+        chatButton.accessibilityLabel = "Chat style spellings"
+        chatButton.addTarget(self, action: #selector(chat), for: .touchUpInside)
+        addSubview(chatButton)
         addSubview(divider)
         render()
     }
@@ -126,6 +137,11 @@ final class CandidateBar: UIView {
         hint.textColor = theme.muted
         paletteButton.isHidden = !input.isEmpty
         paletteButton.tintColor = theme.muted
+        chatButton.isHidden = !input.isEmpty
+        chatButton.setTitleColor(chatOn ? theme.background : theme.muted, for: .normal)
+        chatButton.backgroundColor = chatOn ? theme.text.withAlphaComponent(0.75) : .clear
+        chatButton.layer.borderColor = (chatOn ? UIColor.clear : theme.muted.withAlphaComponent(0.6)).cgColor
+        chatButton.accessibilityValue = chatOn ? "On" : "Off"
         stack.alpha = loading ? 0.5 : 1
         setNeedsLayout()
     }
@@ -140,7 +156,8 @@ final class CandidateBar: UIView {
         stack.frame = CGRect(x: 0, y: 4, width: size.width, height: h - 8)
         scroll.contentSize = CGSize(width: size.width + 8, height: h)
         paletteButton.frame = CGRect(x: bounds.width - 44, y: 0, width: 44, height: h)
-        hint.frame = CGRect(x: 12, y: 0, width: bounds.width - 12 - 44, height: h)
+        chatButton.frame = CGRect(x: bounds.width - 44 - 42, y: (h - 22) / 2, width: 40, height: 22)
+        hint.frame = CGRect(x: 12, y: 0, width: bounds.width - 12 - 44 - 46, height: h)
         divider.frame = CGRect(x: 0, y: h - 0.5, width: bounds.width, height: 0.5)
     }
 
@@ -154,6 +171,12 @@ final class CandidateBar: UIView {
         onTouch?()
         UIDevice.current.playInputClick()
         onPalette?()
+    }
+
+    @objc private func chat() {
+        onTouch?()
+        UIDevice.current.playInputClick()
+        onChat?()
     }
 
     @objc private func keep() {

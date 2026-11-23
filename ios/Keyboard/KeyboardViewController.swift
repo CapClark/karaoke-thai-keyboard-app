@@ -15,6 +15,7 @@ final class KeyboardViewController: UIInputViewController {
     private var candsFor: String? // the letters `cands` were looked up for
     private var request = 0
     private var prevWord: String? // the Thai just typed: word pairs pick the likely meaning
+    private var prevBase: String? // its standard spelling, when it was typed in chat style (the engine knows only that)
     private var thai = true
     private var shiftOn = false, capsLock = false
     private var lastShiftTap = Date.distantPast
@@ -35,6 +36,15 @@ final class KeyboardViewController: UIInputViewController {
         bar.onPalette = { [weak self] in
             Palette.saved = Palette.saved.next
             self?.applyTheme()
+        }
+        bar.chatOn = ChatStyle.enabled
+        bar.onChat = { [weak self] in
+            guard let self else { return }
+            ChatStyle.enabled.toggle()
+            self.bar.chatOn = ChatStyle.enabled
+            self.cands = []; self.candsFor = nil // guesses made in the other style
+            self.bar.showNotice(ChatStyle.enabled ? "Chat style on: krap → คับ, jing → จิง\nสะกดแบบแชท · tap again for ครับ"
+                                                  : "Chat style off: krap → ครับ\nสะกดแบบปกติ")
         }
         keys.onKey = { [weak self] k in self?.press(k) }
         keys.onDeleteRepeat = { [weak self] in self?.deleteBackward() }
@@ -499,7 +509,7 @@ final class TouchWatcher: UIGestureRecognizer {
 
     private func context() -> String? {
         guard let p = prevWord, (textDocumentProxy.documentContextBeforeInput ?? "").hasSuffix(p) else { return nil }
-        return p
+        return prevBase ?? p
     }
 
     private func pick(_ i: Int) {
@@ -536,10 +546,12 @@ final class TouchWatcher: UIGestureRecognizer {
             return
         }
         gate.didConvert(letters: min(c.consume, buffer.count))
+        if hasFullAccess { Usage.noteWord() } // for the app's rating request (App Group needs Full Access)
         let prev = context()
         textDocumentProxy.insertText(c.text)
-        Engine.shared.learn(c.text, previous: prev, kind: c.kind)
+        Engine.shared.learn(c.base ?? c.text, previous: prev, kind: c.kind)
         prevWord = c.text
+        prevBase = c.base
         // A phrase can cover only the first letters: the rest stays to be typed.
         buffer = c.consume >= buffer.count ? "" : String(buffer.dropFirst(c.consume))
         cands = []; candsFor = nil

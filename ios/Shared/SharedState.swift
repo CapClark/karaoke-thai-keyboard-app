@@ -36,3 +36,53 @@ enum SharedState {
         set { defaults?.set(newValue, forKey: limitHitAtKey) }
     }
 }
+
+/// How much the keyboard has really been used, so the app asks for a rating only after
+/// that. Written by the keyboard on each Thai word it types, which needs Full Access (iOS
+/// blocks the App Group otherwise); read by the app.
+enum Usage {
+    static let wordsKey = "shared.usage.words"
+    static let daysKey = "shared.usage.days"
+    static let lastDayKey = "shared.usage.lastDay"
+
+    /// One Thai word typed. Counts each calendar day once (a clock set back adds no day).
+    static func noteWord(now: Date = Date(), in d: UserDefaults? = SharedState.defaults) {
+        guard let d else { return }
+        d.set(d.integer(forKey: wordsKey) + 1, forKey: wordsKey)
+        let day = dayKey(now)
+        if day > (d.string(forKey: lastDayKey) ?? "") {
+            d.set(day, forKey: lastDayKey)
+            d.set(d.integer(forKey: daysKey) + 1, forKey: daysKey)
+        }
+    }
+
+    static func words(in d: UserDefaults? = SharedState.defaults) -> Int { d?.integer(forKey: wordsKey) ?? 0 }
+    static func days(in d: UserDefaults? = SharedState.defaults) -> Int { d?.integer(forKey: daysKey) ?? 0 }
+
+    /// "2026-11-13": sorts in date order.
+    static func dayKey(_ t: Date) -> String {
+        let c = Calendar(identifier: .gregorian).dateComponents([.year, .month, .day], from: t)
+        return String(format: "%04d-%02d-%02d", c.year!, c.month!, c.day!)
+    }
+}
+
+/// When the app may ask for an App Store rating: after real use of the keyboard, never on
+/// the first days, never on a day the free limit stopped the keyboard, and at most once in
+/// 60 days (iOS also shows the request at most three times a year). No question first and
+/// nothing given for a rating (App Review Guidelines 5.6.1).
+enum RatingAsk {
+    static let minWords = 30
+    static let minDays = 3
+    /// Without Full Access the keyboard can't report its use: then the app being opened on
+    /// this many different days stands in for it.
+    static let minAppDays = 4
+    static let gapDays = 60.0
+
+    static func isDue(words: Int, keyboardDays: Int, appDays: Int, lastAsked: Date?,
+                      limitHitAt: Date?, now: Date) -> Bool {
+        if let l = lastAsked, now.timeIntervalSince(l) < gapDays * 86_400 { return false }
+        if let h = limitHitAt, now.timeIntervalSince(h) < 86_400 { return false }
+        if words > 0 { return words >= minWords && keyboardDays >= minDays }
+        return appDays >= minAppDays
+    }
+}

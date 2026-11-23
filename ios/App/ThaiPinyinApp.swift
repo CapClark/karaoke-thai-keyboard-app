@@ -52,7 +52,8 @@ struct SetupView: View {
     ]
 
     private var challenge: Challenge { Self.challenges[current % Self.challenges.count] }
-    private var solved: Bool { text.contains(challenge.thai) }
+    /// Either spelling counts: the keyboard may be in chat style (ChatStyle), which the app can't see.
+    private var solved: Bool { text.contains(challenge.thai) || text.contains(ChatStyle.slang(challenge.thai)) }
 
     var body: some View {
         NavigationStack {
@@ -100,7 +101,7 @@ struct SetupView: View {
                             if !autoFocused { autoFocused = true; focused = true }
                         }
                         .onChange(of: text) { _ in
-                            if solved { done.insert(challenge.id); askForRatingIfDue() }
+                            if solved { done.insert(challenge.id) }
                         }
                 } header: {
                     Text("Practice")
@@ -145,6 +146,14 @@ struct SetupView: View {
                     row("EN / ไทย", "switches to plain English typing")
                     row("Words you pick", "come first next time")
                 }
+
+                Section {
+                    Link(destination: URL(string: "https://apps.apple.com/app/id6833730979?action=write-review")!) {
+                        Label("Rate Karaoke Thai", systemImage: "star")
+                    }
+                } footer: {
+                    Text("A rating or a review helps other people find the keyboard.")
+                }
             }
             .navigationTitle("Karaoke Thai")
             .navigationBarTitleDisplayMode(.inline)
@@ -156,7 +165,10 @@ struct SetupView: View {
         .sheet(isPresented: $showUnlock) { UnlockSheet(store: store) }
         .onChange(of: store.checked) { _ in offerUnlockIfDue() }
         .onChange(of: scenePhase) { phase in
-            if phase == .active { Task { await store.refresh(); offerUnlockIfDue() } }
+            if phase == .active {
+                noteAppDay()
+                Task { await store.refresh(); offerUnlockIfDue(); askForRatingIfDue() }
+            }
         }
     }
 
@@ -165,15 +177,24 @@ struct SetupView: View {
         if !showUnlock && store.unlockDue() { focused = false; showUnlock = true }
     }
 
-    /// Asks for an App Store rating once per version, right after the third practice phrase
-    /// comes out right (iOS itself shows it at most three times a year).
+    /// Counts the different days the app is opened (`RatingAsk` uses it without Full Access).
+    private func noteAppDay() {
+        let u = UserDefaults.standard, day = Usage.dayKey(Date())
+        guard day > (u.string(forKey: "rating.appLastDay") ?? "") else { return }
+        u.set(day, forKey: "rating.appLastDay")
+        u.set(u.integer(forKey: "rating.appDays") + 1, forKey: "rating.appDays")
+    }
+
+    /// Asks for an App Store rating when the app is opened after real use of the keyboard
+    /// (`RatingAsk`), never over the unlock screen.
     private func askForRatingIfDue() {
-        guard done.count == 3 else { return }
-        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? ""
-        let key = "rating.askedVersion"
-        guard UserDefaults.standard.string(forKey: key) != version else { return }
-        UserDefaults.standard.set(version, forKey: key)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1) { requestReview() }
+        let u = UserDefaults.standard, now = Date()
+        guard !showUnlock, RatingAsk.isDue(
+            words: Usage.words(), keyboardDays: Usage.days(), appDays: u.integer(forKey: "rating.appDays"),
+            lastAsked: u.object(forKey: "rating.lastAsked") as? Date, limitHitAt: SharedState.limitHitAt, now: now)
+        else { return }
+        u.set(now, forKey: "rating.lastAsked")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { if !showUnlock { requestReview() } }
     }
 
     private func step(_ n: Int, _ s: LocalizedStringKey) -> some View {
