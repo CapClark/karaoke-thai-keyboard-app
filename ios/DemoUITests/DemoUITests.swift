@@ -79,6 +79,14 @@ final class DemoUITests: XCTestCase {
             pause(1.6)
         }
         pause(1.5)
+        // DEMO_DRAG=points: drag the page up by that much near the top (keeps the keyboard up),
+        // so a store screenshot doesn't have half a card under the navigation bar.
+        if let d = env["DEMO_DRAG"].flatMap(Double.init) {
+            let from = screen.withOffset(CGVector(dx: 200, dy: 140 + d))
+            from.press(forDuration: 0.1, thenDragTo: screen.withOffset(CGVector(dx: 200, dy: 140)),
+                       withVelocity: .slow, thenHoldForDuration: 0.5)
+            pause(1)
+        }
         if let path = env["DEMO_SHOT"] {
             try XCUIScreen.main.screenshot().pngRepresentation.write(to: URL(fileURLWithPath: path))
         }

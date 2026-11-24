@@ -113,18 +113,19 @@ def make(raw, size, head, sub):
     room_w = int(W * 0.84)
     k = min(room_w / shot.width, room_h / shot.height)
     shot = shot.resize((int(shot.width * k), int(shot.height * k)), Image.LANCZOS)
-    frame = rounded(shot, int(70 * scale))
+    radius = int((40 if W > 1500 else 70) * scale)  # iPad: its status bar sits close to the corner
+    frame = rounded(shot, radius)
     x = (W - frame.width) // 2
     # soft drop shadow, then a hairline edge so the phone lifts off the background
     shadow = Image.new("L", size, 0)
     ImageDraw.Draw(shadow).rounded_rectangle([x, top + int(24 * scale), x + frame.width, top + frame.height + int(24 * scale)],
-                                             int(70 * scale), fill=150)
+                                             radius, fill=150)
     shadow = shadow.filter(ImageFilter.GaussianBlur(40 * scale))
     canvas = Image.composite(Image.new("RGB", size, (0, 0, 0)), canvas, shadow)
     edge = Image.new("RGBA", size, (0, 0, 0, 0))
     pad = int(6 * scale)
     ImageDraw.Draw(edge).rounded_rectangle([x - pad, top - pad, x + frame.width + pad, top + frame.height + pad],
-                                           int(70 * scale) + pad, fill=(255, 255, 255, 38))
+                                           radius + pad, fill=(255, 255, 255, 38))
     canvas.paste(edge, (0, 0), edge)
     canvas.paste(frame, (x, top), frame)
     return canvas
